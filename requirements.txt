@@ -1,0 +1,14 @@
+# Use the existing `ALLM-Rec` conda env (has all of these). For a fresh env:
+torch>=2.1
+numpy
+open-clip-torch>=3.2.0
+transformers>=4.49
+sentence-transformers>=3.4
+accelerate
+bitsandbytes>=0.45
+sentencepiece
+scipy
+pyyaml
+pillow
+requests
+tqdm
