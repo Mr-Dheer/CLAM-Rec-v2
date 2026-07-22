@@ -1,0 +1,14 @@
+{
+  "tag": "vitl14_ft",
+  "model": "ViT-L-14",
+  "pretrained": "laion2b_s32b_b82k",
+  "lora": "results/finetune_vitl14/lora_best",
+  "dim": 768,
+  "n_items": 6141,
+  "text_coverage": 6141,
+  "image_coverage": 5527,
+  "fused_shape": [
+    6142,
+    1536
+  ]
+}
