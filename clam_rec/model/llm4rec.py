@@ -13,24 +13,31 @@ import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, OPTForCausalLM, BitsAndBytesConfig
 
+from clam_rec.model.ensure_safetensors import ensure_safetensors
+
 
 class llm4rec(nn.Module):
     def __init__(self, device, llm_model="opt", max_output_txt_len=256, load_in_8bit=True):
         super().__init__()
         self.device = device
 
-        if llm_model == "opt":
-            model_name = "facebook/opt-6.7b"
-            if load_in_8bit:
+        if llm_model in ("opt", "opt_small"):
+            # opt_small (opt-125m) is ONLY for testing the pipeline end-to-end on a
+            # small GPU; real experiments use opt (opt-6.7b). Same architecture.
+            model_name = "facebook/opt-125m" if llm_model == "opt_small" else "facebook/opt-6.7b"
+            # This env (transformers 4.57 + torch 2.5) blocks .bin loading; OPT ships
+            # as .bin only, so convert to local safetensors once. See ensure_safetensors.
+            local_path = ensure_safetensors(model_name)
+            if load_in_8bit and llm_model == "opt":
                 bnb_config = BitsAndBytesConfig(load_in_8bit=True)
                 self.llm_model = OPTForCausalLM.from_pretrained(
-                    model_name, quantization_config=bnb_config,
-                    torch_dtype=torch.float16, use_safetensors=True,
+                    local_path, quantization_config=bnb_config,
+                    dtype=torch.float16, use_safetensors=True,
                     device_map=self.device)
             else:
                 self.llm_model = OPTForCausalLM.from_pretrained(
-                    model_name, torch_dtype=torch.float16, device_map=self.device)
-            self.llm_tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+                    local_path, dtype=torch.float16, device_map=self.device)
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(local_path, use_fast=False)
         else:
             raise ValueError(f"{llm_model} is not supported")
 
