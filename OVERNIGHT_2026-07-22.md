@@ -12,6 +12,10 @@ would have crashed the A6000 run.** Everything is committed and turnkey for the 
    - **Result: held-out image→text retrieval R@1 went 0.530 → 0.633 (+10.4 pts).**
      Clean generalization on unseen items → fine-tuning genuinely helps the embeddings.
 
+   - **Robustness:** repeated on a 2nd by-item split (different held-out items) —
+     seed 0: Δ+0.104, seed 1: Δ+0.100 R@1. The ~+0.10 gain is stable across splits,
+     not a lucky seed.
+
 2. **Cold vs warm proxy analysis.**
    - Fair (shared-pool) comparison: fine-tuning helps cold (+0.102 R@1) and warm
      (+0.104) items **about equally** at the representation level.
