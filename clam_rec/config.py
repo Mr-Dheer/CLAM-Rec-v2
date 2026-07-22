@@ -17,6 +17,21 @@ def load_config(yaml_path, **overrides):
         rel = str(rel)
         return rel if rel.startswith("/") else str(root / rel)
 
+    # Which CLIP embedding set to use. Determines the .npy paths + per-modality dim.
+    #   "bigG"           -> clip_{text,image}_{ds}.npy               (dim 1280)
+    #   "vitl14_zeroshot"-> clip_{text,image}_{ds}_vitl14_zeroshot.npy (dim 768)
+    #   "vitl14_ft"      -> clip_{text,image}_{ds}_vitl14_ft.npy      (dim 768)
+    ds_name = raw["dataset"]["name"]
+    clip_variant = overrides.get("clip_variant", raw["clip"].get("variant", "bigG"))
+    if clip_variant == "bigG":
+        clip_dim = raw["clip"]["dim"]
+        text_npy = f"data/clip/clip_text_{ds_name}.npy"
+        image_npy = f"data/clip/clip_image_{ds_name}.npy"
+    else:
+        clip_dim = 768  # ViT-L/14
+        text_npy = f"data/clip/clip_text_{ds_name}_{clip_variant}.npy"
+        image_npy = f"data/clip/clip_image_{ds_name}_{clip_variant}.npy"
+
     ns = SimpleNamespace(
         dataset=raw["dataset"]["name"],
         interactions=p(raw["dataset"]["interactions"]),
@@ -24,9 +39,10 @@ def load_config(yaml_path, **overrides):
         meta_json=raw["dataset"]["meta_json"],
         maxlen=raw["dataset"]["maxlen"],
         sasrec_checkpoint=p(raw["sasrec"]["checkpoint"]),
-        clip_dim=raw["clip"]["dim"],
-        clip_text_npy=p(f"data/clip/clip_text_{raw['dataset']['name']}.npy"),
-        clip_image_npy=p(f"data/clip/clip_image_{raw['dataset']['name']}.npy"),
+        clip_variant=clip_variant,
+        clip_dim=clip_dim,
+        clip_text_npy=p(text_npy),
+        clip_image_npy=p(image_npy),
         fusion=raw["clip"]["fusion"],
         llm=raw["model"]["llm"],
         variant=raw["model"]["variant"],

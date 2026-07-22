@@ -25,8 +25,16 @@ from clam_rec.data.partition import data_partition
 from clam_rec.data.seq_dataset import SeqDataset
 
 
+def run_name(cfg):
+    """Unique run id incorporating variant, fusion, and (if not bigG) the CLIP set."""
+    name = f"{cfg.variant}_{cfg.fusion}"
+    if getattr(cfg, "clip_variant", "bigG") != "bigG":
+        name += f"_{cfg.clip_variant}"
+    return name
+
+
 def ckpt_prefix(cfg, stage):
-    d = Path("results/checkpoints") / f"{cfg.variant}_{cfg.fusion}"
+    d = Path("results/checkpoints") / run_name(cfg)
     d.mkdir(parents=True, exist_ok=True)
     return str(d) + "/"
 
@@ -36,6 +44,7 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--variant", default=None)
     ap.add_argument("--fusion", default=None)
+    ap.add_argument("--clip_variant", default=None, help="bigG | vitl14_zeroshot | vitl14_ft")
     ap.add_argument("--stage", type=int, required=True, choices=[1, 2])
     args = ap.parse_args()
 
@@ -44,6 +53,8 @@ def main():
         over["variant"] = args.variant
     if args.fusion:
         over["fusion"] = args.fusion
+    if args.clip_variant:
+        over["clip_variant"] = args.clip_variant
     cfg = load_config(args.config, **over)
 
     model = ClamRec(cfg).to(cfg.device)

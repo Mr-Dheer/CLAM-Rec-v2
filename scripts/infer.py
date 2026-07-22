@@ -40,6 +40,7 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--variant", default=None)
     ap.add_argument("--fusion", default=None)
+    ap.add_argument("--clip_variant", default=None, help="bigG | vitl14_zeroshot | vitl14_ft")
     ap.add_argument("--seed", type=int, required=True)
     args = ap.parse_args()
 
@@ -48,11 +49,17 @@ def main():
         over["variant"] = args.variant
     if args.fusion:
         over["fusion"] = args.fusion
+    if args.clip_variant:
+        over["clip_variant"] = args.clip_variant
     cfg = load_config(args.config, **over)
     set_seed(args.seed)
 
+    run = f"{cfg.variant}_{cfg.fusion}"
+    if getattr(cfg, "clip_variant", "bigG") != "bigG":
+        run += f"_{cfg.clip_variant}"
+
     model = ClamRec(cfg).to(cfg.device)
-    prefix = f"results/checkpoints/{cfg.variant}_{cfg.fusion}/"
+    prefix = f"results/checkpoints/{run}/"
     model.load_stage1(prefix, freeze=True)
     model.load_stage2(prefix)
     model.eval()
@@ -65,7 +72,7 @@ def main():
     ds = SeqDatasetInference(user_train, user_valid, user_test, users, itemnum, cfg.maxlen)
     loader = DataLoader(ds, batch_size=cfg.batch_size_infer, pin_memory=True)
 
-    out_dir = Path("results") / f"{cfg.variant}_{cfg.fusion}"
+    out_dir = Path("results") / run
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"seed_{args.seed}.jsonl"
 
