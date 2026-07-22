@@ -367,8 +367,11 @@ inference seeds each, then prints the sliced result tables with significance.
 | Sliced eval harness (+significance) | ✅ (unit-tested) |
 | CLIP extraction/align/fuse from scratch | ✅ (verified, bug fixed) |
 | Model: 3 variants + fusion | ✅ (Stage 1 + wiring validated on 16GB) |
-| **Stage 2 / inference / full matrix (RQ1/RQ2)** | ⏳ **needs A6000** |
-| RQ3: domain image-text CLIP fine-tuning (LoRA) | ⏳ after baselines |
+| Full pipeline seam (train→infer→sliced report) | ✅ validated end-to-end with tiny LLM |
+| Env fix: OPT `.bin` → safetensors (CVE block) | ✅ (would have crashed A6000 run) |
+| RQ3 CLIP fine-tuning + proxy analysis | ✅ done early (§11); rec-impact needs A6000 |
+| clip_variant selection (bigG/vitl14_zeroshot/vitl14_ft) | ✅ config + drivers, no collisions |
+| **Full matrix run (RQ1/RQ2/RQ3 recommendation Hit@1)** | ⏳ **needs A6000** — `bash scripts/run_all.sh` |
 | Paper writing | ⏳ not started |
 
 **Immediate next action when compute is available:** run `scripts/run_all.sh`,
@@ -436,6 +439,10 @@ config's `clip_text_npy`/`clip_image_npy` at the ViT-L files (and set `clip_dim=
      new architecture.
    - **Do not trust old results or old CLIP code** in `~/Dev/Extension-Paper`.
    - Use the **`ALLM-Rec` conda env**. Heavy training needs the A6000 (24GB+).
+     OPT loads via `ensure_safetensors` (this env blocks `.bin`); on first run it
+     converts opt-6.7b to `~/.cache/clam_rec/opt_safetensors/` (needs disk + a few
+     min). For a smoke test on a small GPU use `--variant ... llm=opt_small` /
+     `configs` override + `infer.py --max_users N`.
    - The user prefers **autonomous execution** — don't ask permission for routine
      tool use; reserve questions for genuine research/positioning decisions.
 4. Old (untrusted) code for reference only: `~/Dev/Extension-Paper/A-LLMRec`
