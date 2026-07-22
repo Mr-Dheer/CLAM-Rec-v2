@@ -118,6 +118,24 @@ the analysis framing.
   (`clip_inject`). Does fixing the bottleneck help, and does it help more on cold
   items?
 
+- **RQ3 — Domain fine-tuning of CLIP (added *after* baselines).** Does light-touch
+  **domain image-text contrastive** fine-tuning of CLIP (re-aligning each item's
+  own image ↔ title/description on the beauty domain) change *when* vision helps —
+  e.g. sharpen the cold-item gain, or extend benefit to warm items?
+  This is an **analysis axis, not the headline** (keeping the paper distinct from
+  Smol-Rec and inside the analysis framing). Constraints & caveats:
+  - Use **LoRA / light-touch**, small LR, early-stopping — 6,141 items is a real
+    **overfitting** risk; naive fine-tuning can make embeddings *worse*.
+  - **Signal = domain image-text contrastive**, deliberately NOT co-purchase /
+    rec-aware — rec-aware would inject collaborative signal into the visual space
+    and **blur the clean vision-vs-CF separation** the whole analysis depends on.
+  - **Fair comparison = fine-tuned-X vs zero-shot-X (same CLIP model)**, sliced
+    cold/warm. Note a fine-tuned *small* CLIP may still lose to *zero-shot bigG*.
+  - Fine-tuning only helps where CLIP actually reaches the LLM (**`clip_inject`**),
+    NOT `clip_align` (the bottleneck is unaffected by better inputs).
+  - **Sequencing:** do this ONLY after the zero-shot baselines (RQ1/RQ2) are run —
+    we can't tell if fine-tuning helps until we know the zero-shot numbers.
+
 **Optional axes available but not committed** (the code/data support them):
 image-present vs image-missing items (now possible because our image coverage is a
 correct 90%), and user-sparsity (short vs long history).
@@ -349,7 +367,8 @@ inference seeds each, then prints the sliced result tables with significance.
 | Sliced eval harness (+significance) | ✅ (unit-tested) |
 | CLIP extraction/align/fuse from scratch | ✅ (verified, bug fixed) |
 | Model: 3 variants + fusion | ✅ (Stage 1 + wiring validated on 16GB) |
-| **Stage 2 / inference / full matrix** | ⏳ **needs A6000** |
+| **Stage 2 / inference / full matrix (RQ1/RQ2)** | ⏳ **needs A6000** |
+| RQ3: domain image-text CLIP fine-tuning (LoRA) | ⏳ after baselines |
 | Paper writing | ⏳ not started |
 
 **Immediate next action when compute is available:** run `scripts/run_all.sh`,
