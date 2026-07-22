@@ -133,8 +133,8 @@ the analysis framing.
     cold/warm. Note a fine-tuned *small* CLIP may still lose to *zero-shot bigG*.
   - Fine-tuning only helps where CLIP actually reaches the LLM (**`clip_inject`**),
     NOT `clip_align` (the bottleneck is unaffected by better inputs).
-  - **Sequencing:** do this ONLY after the zero-shot baselines (RQ1/RQ2) are run —
-    we can't tell if fine-tuning helps until we know the zero-shot numbers.
+  - **Sequencing:** the recommendation-impact eval must wait for the A6000. But
+    the fine-tuning itself + a **proxy sanity check** were done early (see §11).
 
 **Optional axes available but not committed** (the code/data support them):
 image-present vs image-missing items (now possible because our image coverage is a
@@ -374,6 +374,52 @@ inference seeds each, then prints the sliced result tables with significance.
 **Immediate next action when compute is available:** run `scripts/run_all.sh`,
 then read the report tables and confirm/adjust the RQ hypotheses. Then write the
 paper (new title, rewritten intro/related-work per §2, results per §3).
+
+---
+
+## 11. RQ3 fine-tuning — done early on the 16GB box (results)
+
+The CLIP fine-tuning and a proxy sanity-check were completed on the local RTX 4080
+while waiting for the cluster (the recommendation-impact eval still needs the A6000).
+
+**Setup.** LoRA fine-tuning of **ViT-L/14** (open_clip `laion2b_s32b_b82k`, 768-dim
+per modality) with a **domain image-text contrastive** loss. 5,527 item image-text
+pairs, split **by item** into 4,698 train / 829 val (zero overlap → measures
+generalization). LoRA on `c_fc, c_proj, out_proj` (0.75% of params trainable).
+Symmetric InfoNCE, AdamW lr 5e-5, **gradient checkpointing** (required to fit
+16GB), early-stopping on val image→text Recall@1. Code:
+`clam_rec/finetune/{pairs_dataset, finetune_clip, extract_vitl14, proxy_analysis}.py`.
+
+**Result 1 — fine-tuning works (proxy retrieval on unseen items).**
+Val image→text **R@1: 0.530 (zero-shot) → 0.633 (fine-tuned, epoch 15), +10.4 pts.**
+Clean curve, early-stopped at ep 19. → domain fine-tuning genuinely improves the
+ViT-L/14 representation on held-out items.
+
+**Result 2 — cold vs warm (fair shared-pool retrieval).**
+| Slice | zero-shot R@1 | fine-tuned R@1 | Δ |
+|-------|--------------:|---------------:|----:|
+| cold  | 0.513 | 0.615 | **+0.102** |
+| warm  | 0.571 | 0.675 | **+0.104** |
+
+**Honest reading:** fine-tuning helps **substantially and about equally** for cold
+and warm items *at the representation level*. Do **not** over-claim that
+fine-tuning specifically rescues cold items — the gain is slice-agnostic here.
+(Warm items start higher because popular products have richer metadata.) Whether
+this yields a **cold-specific recommendation** gain is still open and needs the
+A6000 (compare `vitl14_zeroshot` vs `vitl14_ft` embeddings in `clip_inject`,
+sliced cold/warm). ⚠️ This is a **retrieval proxy**, not recommendation Hit@1.
+
+**Artifacts produced (ready for the A6000):**
+- LoRA adapters: `results/finetune_vitl14/lora_best/`
+- Fair same-model embedding pair (drop-in for `clip_inject`, 1536-dim):
+  `data/clip/clip_fused_Luxury_Beauty_vitl14_zeroshot.npy` and `..._vitl14_ft.npy`
+- Curves/metrics: `results/finetune_vitl14/history.json`,
+  `results/finetune_vitl14/proxy_coldwarm{,_sharedpool}.json`
+
+**Note on dimensions:** the ViT-L set is 1536-dim (768×2); the main bigG set is
+2560-dim (1280×2). The RQ3 comparison is **fine-tuned-ViT-L vs zero-shot-ViT-L**
+(same model) — NOT vs bigG. To also run the main RQ1/RQ2 with ViT-L, point the
+config's `clip_text_npy`/`clip_image_npy` at the ViT-L files (and set `clip_dim=768`).
 
 ---
 
