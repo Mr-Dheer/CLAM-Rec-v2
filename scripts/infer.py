@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--fusion", default=None)
     ap.add_argument("--clip_variant", default=None, help="bigG | vitl14_zeroshot | vitl14_ft")
     ap.add_argument("--seed", type=int, required=True)
+    ap.add_argument("--max_users", type=int, default=0, help="limit users (smoke test only)")
     args = ap.parse_args()
 
     over = {"stage": "inference"}
@@ -69,6 +70,8 @@ def main():
 
     users = [u for u in range(1, usernum + 1)
              if len(user_train.get(u, [])) >= 1 and len(user_test.get(u, [])) >= 1]
+    if args.max_users:                      # for quick smoke tests only
+        users = users[:args.max_users]
     ds = SeqDatasetInference(user_train, user_valid, user_test, users, itemnum, cfg.maxlen)
     loader = DataLoader(ds, batch_size=cfg.batch_size_infer, pin_memory=True)
 
