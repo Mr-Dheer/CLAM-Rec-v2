@@ -9,3 +9,6 @@ data/images/
 assets/
 .venv/
 *.log
+
+# LoRA weights transferred via rsync, not git
+**/lora_best/adapter_model.safetensors
