@@ -1,0 +1,13 @@
+{
+  "dataset": "Luxury_Beauty_bigGfresh",
+  "model_id": "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+  "dim": 1280,
+  "prefix": "a product photo of ",
+  "n_items": 6141,
+  "text_coverage": 6141,
+  "image_coverage": 5527,
+  "fused_shape": [
+    6142,
+    2560
+  ]
+}
