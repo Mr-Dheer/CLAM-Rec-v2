@@ -45,8 +45,10 @@ training interaction count ≤ 5) vs **warm** (> 5).
 | # | Variant | CLIP set | Seeds | Overall | Cold | Warm | Date |
 |---|---------|----------|:-----:|:-------:|:----:|:----:|------|
 | 0 | **SASRec only** (CF floor) | — | 1 (seed 0) | 0.5270 | **0.1929** | **0.7315** | 2026-07-29 |
+| 3 | **text** (LLM, no vision) | — (SBERT) | 1 (seed 0) | **0.6029** | 0.3739 | 0.7202 | 2026-07-29 |
 | 1 | clip_inject | vitl14_zeroshot | 1 (seed 0) | **0.5976** | 0.4845 | 0.6668 | 2026-07-27 |
 | 2 | clip_inject | vitl14_ft | 1 (seed 0) | **0.5674** | 0.4494 | 0.6396 | 2026-07-27 |
+| 4 | clip_inject | bigG (fresh) | 1 (seed 0) | _running_ | _running_ | _running_ | 2026-07-29 |
 
 Run config for #1–#2: `configs/luxury_beauty_rq3.yaml` (batch_size2=4, batch_size_infer=16).
 Output: `results/clip_inject_concat_vitl14_{zeroshot,ft}/seed_0.jsonl` (9,912 records each).
@@ -54,19 +56,27 @@ Row #0 (SASRec-only): `scripts/eval_sasrec.py` — same leave-one-out split, sam
 set (1 pos + 19 neg, seed 0), same cold/warm tags; Hit@1 = SASRec scores true item #1.
 Ran on local CPU (tiny). Output: `results/sasrec_only/seed_0.jsonl`.
 
-### RQ1 headline: SASRec (CF) vs vision-augmented, sliced cold/warm
+### RQ1 headline: the cold-start attribution ladder (sliced cold/warm)
 
 | Model | Overall | Cold | Warm |
 |-------|--------:|-----:|-----:|
 | SASRec only (CF) | 0.5270 | **0.1929** | 0.7315 |
+| text (LLM, no vision) | 0.6029 | 0.3739 | 0.7202 |
 | clip_inject + ViT-L (vision) | 0.5976 | **0.4845** | 0.6668 |
-| Δ (vision − CF) | +0.071 | **+0.292** | −0.065 |
 
-**Finding:** Pure collaborative filtering (SASRec) is strong on warm items (0.73) but
-**collapses on cold items (0.19)** — no interaction signal. Adding vision + LLM
-**dramatically recovers cold-item recommendation (0.19 → 0.48, +29 pts)** at a small
-cost to warm items (−6.5 pts), and wins overall. This is the core "when does vision
-help" result: **vision rescues cold-start, where CF fails.** (1 seed; confirm with more.)
+**Cold-item ladder:** CF 0.193 → +LLM 0.374 → +vision 0.485. **Reading:**
+1. **CF collapses on cold items** (0.19) — no interaction signal.
+2. **The LLM alone recovers a lot** (0.19 → 0.37): semantic/world knowledge helps cold-start
+   even without vision. (Honest attribution — much of the cold gain is the LLM, not vision.)
+3. **Vision adds a further targeted cold boost** (0.37 → 0.48, +11 pts on top of the LLM).
+4. **BUT overall, text ≈ vision** (0.603 vs 0.598) because text is better on warm (0.72 vs 0.67).
+   → Vision's benefit is **concentrated in cold-start; averaging washes it out** — which is
+   *exactly why the original paper's flat +1.31 average looked weak.* The story is not
+   "vision uniformly helps" but "vision helps specifically where CF/text are weakest (cold)."
+
+This nuanced, honest framing (LLM does much of the work; vision adds a targeted cold-start
+boost; global averages hide it) is a *stronger, more credible* paper than "vision helps."
+(1 seed each — confirm with ≥10 seeds before publishing; the cold gaps are large so likely robust.)
 
 ### RQ3 comparison (fine-tuned vs zero-shot CLIP, ViT-L/14, clip_inject)
 
