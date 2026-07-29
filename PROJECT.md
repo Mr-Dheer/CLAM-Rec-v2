@@ -9,7 +9,42 @@
 > chats can pick up and continue the work. Read this end-to-end before touching
 > anything.
 
-Last updated: 2026-07-21.
+Last updated: 2026-07-29.
+
+**Reading order for a fresh session:** (1) this file, (2) `INFRASTRUCTURE.md` (the 4
+code locations + how they sync — read before touching the remote), (3) `RESULTS.md`
+(numbers ledger). Persistent memory index: `MEMORY.md` in the memory dir.
+
+---
+
+## 0.0 CURRENT STATUS & NEXT STEPS (keep this updated; it goes stale fastest)
+
+_As of 2026-07-29:_
+
+**Done (clean pipeline, Amazon Luxury Beauty, 1 seed each, Hit@1 fuzzy@0.90):**
+- RQ3 complete: `clip_inject` + ViT-L/14 zero-shot (0.5976) vs fine-tuned (0.5674).
+  **Fine-tuning HURT recommendation ~3pt** (negative but publishable finding). See §11.1.
+
+**Running right now (remote `dreal_gpu`, detached, logging to `logs/`):**
+- **GPU 0:** `text` baseline (A-LLMRec, no vision) — the no-vision reference point.
+  Script `scripts/run_baseline_text.sh`, log `logs/baseline_text.log`.
+- **GPU 2:** `clip_inject` + **bigG** (freshly regenerated bigG embeddings, verified
+  cosine 1.0 vs old). Script `scripts/run_bigG.sh`, log `logs/bigG.log`.
+- Both use `configs/luxury_beauty_rq3.yaml` (batch_size2=4, batch_size_infer=16 — safe).
+- To check: `ssh dreal_gpu 'tail logs/bigG.log logs/baseline_text.log'`.
+
+**Immediate next steps (not yet run):**
+1. Collect the `text` and `clip_inject`+bigG numbers into `RESULTS.md` when they finish.
+2. **`clip_align` + bigG** — the paper's original bottleneck mechanism, needed for the
+   clean mechanism comparison (text vs clip_align vs clip_inject) = the RQ1 headline.
+3. **RQ2 fusion** ablation (clip_inject: concat vs mean vs gating).
+4. **Multi-seed (≥10)** for anything we want significance on (currently 1 seed each).
+5. Start the paper draft once RQ1 numbers are in.
+
+**Key gotchas** (details later in this doc / INFRASTRUCTURE.md): batch_size2≤4 &
+batch_size_infer≤16 on the A6000 or it OOMs; OPT loads via safetensors auto-conversion;
+run long jobs detached (`setsid nohup`), kill by PID; embeddings are regenerated on the
+LOCAL box (remote lacks open_clip + images) then rsynced.
 
 ---
 
