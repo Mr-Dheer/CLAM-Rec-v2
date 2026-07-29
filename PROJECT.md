@@ -473,6 +473,9 @@ text / clip_align / clip_inject, + fusion) have NOT been run yet.**
 
 1. Read this file top to bottom. It is the plan. Then read **`RESULTS.md`** — the
    factual ledger of every experiment run and its metrics (append new results there).
+   Also read **`INFRASTRUCTURE.md`** — explains the 4 locations (old project, local
+   clean repo, GitHub, remote GPU box), how they sync, and why they drift. Read it
+   before touching the remote or moving files, or you WILL get confused.
 2. The persistent memory index is at
    `~/.claude/projects/-home-kavach-Dev-Extension-Paper/memory/MEMORY.md`
    (individual notes there mirror this doc but this doc is authoritative).
