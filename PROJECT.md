@@ -369,9 +369,12 @@ inference seeds each, then prints the sliced result tables with significance.
 | Model: 3 variants + fusion | ✅ (Stage 1 + wiring validated on 16GB) |
 | Full pipeline seam (train→infer→sliced report) | ✅ validated end-to-end with tiny LLM |
 | Env fix: OPT `.bin` → safetensors (CVE block) | ✅ (would have crashed A6000 run) |
-| RQ3 CLIP fine-tuning + proxy analysis | ✅ done early (§11); rec-impact needs A6000 |
+| RQ3 CLIP fine-tuning + proxy analysis | ✅ done (§11) |
 | clip_variant selection (bigG/vitl14_zeroshot/vitl14_ft) | ✅ config + drivers, no collisions |
-| **Full matrix run (RQ1/RQ2/RQ3 recommendation Hit@1)** | ⏳ **needs A6000** — `bash scripts/run_all.sh` |
+| Deployed + validated on dreal_gpu (A6000, GPU 2) | ✅ SSH, clone, rsync, train/infer work |
+| **RQ3 recommendation result (ViT-L, 1 seed)** | ✅ DONE — fine-tuning HURT rec ~3pt (§11.1); see RESULTS.md |
+| **RQ1/RQ2 headline (bigG: text/clip_align/clip_inject + fusion)** | ⏳ **NOT run yet — the core result still pending** |
+| Multi-seed significance (≥10 seeds) | ⏳ currently 1 seed per model |
 | Paper writing | ⏳ not started |
 
 **Immediate next action when compute is available:** run `scripts/run_all.sh`,
@@ -424,11 +427,52 @@ sliced cold/warm). ⚠️ This is a **retrieval proxy**, not recommendation Hit@
 (same model) — NOT vs bigG. To also run the main RQ1/RQ2 with ViT-L, point the
 config's `clip_text_npy`/`clip_image_npy` at the ViT-L files (and set `clip_dim=768`).
 
+### 11.1 RQ3 RECOMMENDATION result (run on GPU, 2026-07-27) — a NEGATIVE finding
+
+We ran `clip_inject` with both ViT-L CLIP sets (1 seed each) on OPT-6.7B. Hit@1
+(fuzzy@0.90), sliced cold/warm:
+
+| Slice | Zero-shot CLIP | Fine-tuned CLIP | Δ |
+|-------|---------------:|----------------:|----:|
+| Overall | 0.5976 | 0.5674 | **−0.030** |
+| Cold | 0.4845 | 0.4494 | **−0.035** |
+| Warm | 0.6668 | 0.6396 | **−0.027** |
+
+**Fine-tuning CLIP HURT recommendation by ~3 pts across all slices** — even though it
+*improved* image↔text retrieval (proxy R@1 0.53→0.63). This is the domain-overspecialization
+risk realized: fine-tuning makes each item's image/text more self-consistent but collapses
+the cross-item general semantic structure the recommender needs. **Retrieval quality ≠
+recommendation quality.**
+
+This is a **publishable negative result** for the analysis paper: "domain fine-tuning of
+CLIP improves alignment but degrades recommendation; zero-shot general CLIP is better —
+a warning against naive fine-tune-on-your-domain." See `RESULTS.md` for the numbers ledger.
+
+**Caveats:** (1) 1 seed only — not yet statistically confirmed (need ≥2 seeds for the
+paired t-test). (2) This is ViT-L `clip_inject` only. The **headline RQ1/RQ2 (bigG:
+text / clip_align / clip_inject, + fusion) have NOT been run yet.**
+
+### 11.2 Operational lessons from the GPU run (important for future runs)
+- **OPT `.bin` loading:** the remote env auto-converts to safetensors (`ensure_safetensors`);
+  first run writes ~13GB to `~/.cache/clam_rec/opt_safetensors/`.
+- **Batch sizes (A6000 49GB):** Stage-2 `batch_size2=8` and `16` both **OOM'd** — Stage-2
+  peak memory is driven by the *longest sequence in a batch*, so a batch can run for
+  hundreds of steps then OOM on a heavy one. **`batch_size2=4` is the safe working value**
+  (~22GB, ~4× faster than bs=1). **`batch_size_infer=64` OOM'd during GENERATION**
+  (KV cache × 64 seqs in 8-bit); use **`batch_size_infer=16`** (validated safe).
+- **Generation memory ≫ training memory per-sample** — keep the inference batch small.
+- Batch tweaks live in a **separate config** (`configs/luxury_beauty_rq3.yaml`); the base
+  `luxury_beauty.yaml` is left at its defaults.
+- Long jobs run **detached** (`setsid nohup … &`) logging to a file; kill by **PID**
+  (setsid escapes `pkill -f`). Resume script `scripts/run_rq3_resume.sh` is idempotent
+  (skips trained checkpoints + existing seed outputs).
+
 ---
 
 ## 10. For a future Claude session (onboarding checklist)
 
-1. Read this file top to bottom. It is the plan.
+1. Read this file top to bottom. It is the plan. Then read **`RESULTS.md`** — the
+   factual ledger of every experiment run and its metrics (append new results there).
 2. The persistent memory index is at
    `~/.claude/projects/-home-kavach-Dev-Extension-Paper/memory/MEMORY.md`
    (individual notes there mirror this doc but this doc is authoritative).
