@@ -44,11 +44,29 @@ training interaction count ≤ 5) vs **warm** (> 5).
 
 | # | Variant | CLIP set | Seeds | Overall | Cold | Warm | Date |
 |---|---------|----------|:-----:|:-------:|:----:|:----:|------|
+| 0 | **SASRec only** (CF floor) | — | 1 (seed 0) | 0.5270 | **0.1929** | **0.7315** | 2026-07-29 |
 | 1 | clip_inject | vitl14_zeroshot | 1 (seed 0) | **0.5976** | 0.4845 | 0.6668 | 2026-07-27 |
 | 2 | clip_inject | vitl14_ft | 1 (seed 0) | **0.5674** | 0.4494 | 0.6396 | 2026-07-27 |
 
 Run config for #1–#2: `configs/luxury_beauty_rq3.yaml` (batch_size2=4, batch_size_infer=16).
 Output: `results/clip_inject_concat_vitl14_{zeroshot,ft}/seed_0.jsonl` (9,912 records each).
+Row #0 (SASRec-only): `scripts/eval_sasrec.py` — same leave-one-out split, same 20-candidate
+set (1 pos + 19 neg, seed 0), same cold/warm tags; Hit@1 = SASRec scores true item #1.
+Ran on local CPU (tiny). Output: `results/sasrec_only/seed_0.jsonl`.
+
+### RQ1 headline: SASRec (CF) vs vision-augmented, sliced cold/warm
+
+| Model | Overall | Cold | Warm |
+|-------|--------:|-----:|-----:|
+| SASRec only (CF) | 0.5270 | **0.1929** | 0.7315 |
+| clip_inject + ViT-L (vision) | 0.5976 | **0.4845** | 0.6668 |
+| Δ (vision − CF) | +0.071 | **+0.292** | −0.065 |
+
+**Finding:** Pure collaborative filtering (SASRec) is strong on warm items (0.73) but
+**collapses on cold items (0.19)** — no interaction signal. Adding vision + LLM
+**dramatically recovers cold-item recommendation (0.19 → 0.48, +29 pts)** at a small
+cost to warm items (−6.5 pts), and wins overall. This is the core "when does vision
+help" result: **vision rescues cold-start, where CF fails.** (1 seed; confirm with more.)
 
 ### RQ3 comparison (fine-tuned vs zero-shot CLIP, ViT-L/14, clip_inject)
 
