@@ -21,10 +21,30 @@ Filter logic (must match data_preprocess.py exactly):
 """
 
 import gzip
+import html
 import json
 import pickle
+import re
 from collections import defaultdict
 from pathlib import Path
+
+_TITLE_MAXLEN = 150   # cap length of kept titles (legit p99 ~152 chars)
+_TITLE_JUNK_LEN = 250 # titles longer than this (after cleaning) are corrupt HTML/JS
+                      # blobs (some Amazon meta "title" fields are >400k chars of
+                      # scraped JS) -> DROP them entirely rather than keep junk.
+
+
+def _clean_title(t):
+    """Unescape HTML, strip tags, collapse whitespace. Returns None for empty OR
+    garbage (over-long corrupt) titles so those items fall back to 'No Title'."""
+    if not t:
+        return None
+    t = html.unescape(str(t))
+    t = re.sub(r"<[^>]+>", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    if not t or len(t) > _TITLE_JUNK_LEN:
+        return None
+    return t[:_TITLE_MAXLEN].strip()
 
 
 def _is_beauty_or_toys(name: str) -> bool:
@@ -106,15 +126,23 @@ def preprocess(
 
         User[userid].append([time, itemid])
 
-        # title / description (best-effort, matching original try/except)
-        try:
-            desc = meta_dict[asin]["description"]
-            name_dict["description"][itemid] = (
-                "Empty description" if len(desc) == 0 else desc[0]
-            )
-            name_dict["title"][itemid] = meta_dict[asin]["title"]
-        except Exception:
-            pass
+        # title / description (best-effort). Captured INDEPENDENTLY: the original
+        # A-LLMRec code put both in one try with description first, so categories
+        # WITHOUT a "description" field (e.g. AMAZON_FASHION) raised KeyError and
+        # dropped the TITLE too — silently killing 88% of Fashion titles and breaking
+        # the title-generation eval. Decoupling recovers titles; it does NOT touch the
+        # itemmap/interactions (only name_dict), so the SASRec alignment is unchanged.
+        m = meta_dict.get(asin, {})
+        title = _clean_title(m.get("title"))
+        if title:
+            name_dict["title"][itemid] = title
+        desc = m.get("description")
+        if isinstance(desc, list):
+            name_dict["description"][itemid] = "Empty description" if len(desc) == 0 else desc[0]
+        elif desc:
+            name_dict["description"][itemid] = desc
+        else:
+            name_dict["description"][itemid] = "Empty description"
 
     for userid in User:
         User[userid].sort(key=lambda x: x[0])

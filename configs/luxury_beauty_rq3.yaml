@@ -1,0 +1,45 @@
+# CLAM-Rec v2 — Luxury Beauty experiment config
+# One config, no dead options. See README for the analysis design.
+
+dataset:
+  name: Luxury_Beauty
+  interactions: assets/Luxury_Beauty.txt          # user item per line (chronological)
+  text_name_dict: assets/Luxury_Beauty_text_name_dict.json.gz
+  meta_json: /home/kavach/Dev/Extension-Paper/A-LLMRec/data/amazon/meta_Luxury_Beauty.json
+  reviews_gz: /home/kavach/Dev/Extension-Paper/A-LLMRec/data/amazon/Luxury_Beauty.json.gz
+  maxlen: 50
+
+sasrec:                                            # frozen CF model (reused, trusted)
+  checkpoint: assets/sasrec_Luxury_Beauty.pth
+  hidden_units: 50
+  num_blocks: 2
+  num_heads: 1
+  dropout_rate: 0.5
+
+clip:
+  model_id: "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+  dim: 1280                                        # per-modality
+  text_prompt_prefix: "a product photo of "
+  images_dir: data/images/Luxury_Beauty
+  fused_out: data/clip/clip_fused_Luxury_Beauty.npy   # (itemnum+1, 2560)
+  fusion: concat                                   # concat | mean | gating (RQ2)
+
+model:
+  llm: opt                                         # facebook/opt-6.7b
+  variant: clip_inject                             # text | clip_align | clip_inject (mechanism contrast)
+  joint_dim: 128
+
+train:
+  batch_size1: 32
+  batch_size2: 6
+  batch_size_infer: 16
+  num_epochs: 10
+  stage1_lr: 0.0001
+  stage2_lr: 0.0001
+
+eval:
+  candidate_num: 20                                # 1 positive + 19 negatives
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  fuzzy_threshold: 0.90
+  cold_threshold: 5                                # target item interaction count <= 5 => "cold" (RQ1)
+  metrics_k: [1, 5, 10]

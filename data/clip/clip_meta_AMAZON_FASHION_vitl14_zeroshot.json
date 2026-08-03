@@ -1,0 +1,14 @@
+{
+  "tag": "vitl14_zeroshot",
+  "model": "ViT-L-14",
+  "pretrained": "laion2b_s32b_b82k",
+  "lora": null,
+  "dim": 768,
+  "n_items": 7310,
+  "text_coverage": 7310,
+  "image_coverage": 6076,
+  "fused_shape": [
+    7311,
+    1536
+  ]
+}

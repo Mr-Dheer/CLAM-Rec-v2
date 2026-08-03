@@ -1,0 +1,47 @@
+# CLAM-Rec v2 — Amazon Prime Pantry config (ViT-L/14 single backbone).
+# 3rd dataset. Fresh McAuley-v2 data; SASRec trained on our interactions
+# (scripts/train_sasrec.py). 15,611 users / 7,841 items. Titles 100% clean.
+# Batch sizes = A6000-safe (batch_size2=6, infer=16).
+
+dataset:
+  name: Prime_Pantry
+  interactions: assets/Prime_Pantry.txt
+  text_name_dict: assets/Prime_Pantry_text_name_dict.json.gz
+  meta_json: data/raw/meta_Prime_Pantry.json
+  reviews_gz: data/raw/Prime_Pantry.json.gz
+  maxlen: 50
+
+sasrec:                                             # trained on our interactions (15611u/7841i)
+  checkpoint: assets/sasrec_Prime_Pantry.pth
+  hidden_units: 50
+  num_blocks: 2
+  num_heads: 1
+  dropout_rate: 0.5
+
+clip:
+  model_id: "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+  dim: 1280                                         # bigG default; overridden to 768 via clip_variant=vitl14_*
+  text_prompt_prefix: "a product photo of "
+  images_dir: data/images/Prime_Pantry
+  fused_out: data/clip/clip_fused_Prime_Pantry.npy
+  fusion: concat
+
+model:
+  llm: opt
+  variant: clip_inject
+  joint_dim: 128
+
+train:
+  batch_size1: 32
+  batch_size2: 6
+  batch_size_infer: 16
+  num_epochs: 10
+  stage1_lr: 0.0001
+  stage2_lr: 0.0001
+
+eval:
+  candidate_num: 20
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  fuzzy_threshold: 0.90
+  cold_threshold: 5
+  metrics_k: [1, 5, 10]

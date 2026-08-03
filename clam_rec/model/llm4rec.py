@@ -131,3 +131,49 @@ class llm4rec(nn.Module):
                                      attention_mask=attention_mask,
                                      return_dict=True, labels=targets)
         return outputs.loss
+
+    @torch.no_grad()
+    def score_titles(self, log_emb, samples):
+        """Per-sequence length-normalized log-likelihood of each text_output given its
+        prompt + soft tokens. Same construction as forward(), but returns a (B,) tensor
+        (higher = more likely) instead of the batch-mean loss. Used for candidate ranking.
+        """
+        atts_llm = torch.ones(log_emb.size()[:-1], dtype=torch.long).to(self.device).unsqueeze(1)
+        out_tok = self.llm_tokenizer(
+            [t + self.llm_tokenizer.eos_token for t in samples["text_output"]],
+            return_tensors="pt", padding="longest", truncation=False).to(self.device)
+        in_tok = self.llm_tokenizer(
+            samples["text_input"], return_tensors="pt",
+            padding="longest", truncation=False).to(self.device)
+
+        llm_tokens, input_part_targets_len = self.concat_text_input_output(
+            in_tok.input_ids, in_tok.attention_mask, out_tok.input_ids, out_tok.attention_mask)
+
+        targets = llm_tokens["input_ids"].masked_fill(
+            llm_tokens["input_ids"] == self.llm_tokenizer.pad_token_id, -100)
+        for i, l in enumerate(input_part_targets_len):
+            targets[i][:l] = -100
+        empty_targets = torch.ones(atts_llm.size(), dtype=torch.long).to(self.device).fill_(-100)
+        targets = torch.cat([empty_targets, targets], dim=1)
+
+        inputs_embeds = self.llm_model.get_input_embeddings()(llm_tokens["input_ids"])
+        llm_tokens, inputs_embeds = self.replace_soft_tokens(
+            llm_tokens, inputs_embeds, samples["interact"], samples["candidate"],
+            samples.get("interact_mm"), samples.get("candidate_mm"))
+        attention_mask = llm_tokens["attention_mask"]
+
+        inputs_embeds = torch.cat([log_emb.unsqueeze(1), inputs_embeds], dim=1)
+        attention_mask = torch.cat([atts_llm, attention_mask], dim=1)
+
+        with torch.cuda.amp.autocast():
+            outputs = self.llm_model(inputs_embeds=inputs_embeds,
+                                     attention_mask=attention_mask, return_dict=True)
+        # causal-LM shift: logits at t predict token t+1
+        shift_logits = outputs.logits[:, :-1, :].float()
+        shift_labels = targets[:, 1:]
+        nll = torch.nn.functional.cross_entropy(
+            shift_logits.reshape(-1, shift_logits.size(-1)), shift_labels.reshape(-1),
+            ignore_index=-100, reduction="none").view(shift_labels.size())
+        mask = (shift_labels != -100).float()
+        seq_nll = (nll * mask).sum(1) / mask.sum(1).clamp(min=1.0)   # length-normalized
+        return -seq_nll   # higher = more likely

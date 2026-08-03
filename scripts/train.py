@@ -26,8 +26,10 @@ from clam_rec.data.seq_dataset import SeqDataset
 
 
 def run_name(cfg):
-    """Unique run id incorporating variant, fusion, and (if not bigG) the CLIP set."""
-    name = f"{cfg.variant}_{cfg.fusion}"
+    """Unique run id: dataset + variant + fusion (+ CLIP set if not bigG).
+    The dataset prefix is REQUIRED to avoid cross-dataset output/checkpoint
+    collisions (e.g. Luxury vs All Beauty both writing text_concat)."""
+    name = f"{cfg.dataset}_{cfg.variant}_{cfg.fusion}"
     if getattr(cfg, "clip_variant", "bigG") != "bigG":
         name += f"_{cfg.clip_variant}"
     return name
@@ -46,6 +48,7 @@ def main():
     ap.add_argument("--fusion", default=None)
     ap.add_argument("--clip_variant", default=None, help="bigG | vitl14_zeroshot | vitl14_ft")
     ap.add_argument("--stage", type=int, required=True, choices=[1, 2])
+    ap.add_argument("--batch_size2", type=int, default=None, help="override Stage-2 batch size (e.g. 4 to recover from OOM)")
     args = ap.parse_args()
 
     over = {"stage": args.stage}
@@ -64,7 +67,7 @@ def main():
     user_train, _, _, usernum, itemnum = part
     print(f"users={usernum} items={itemnum} variant={cfg.variant} fusion={cfg.fusion} stage={args.stage}")
 
-    bs = cfg.batch_size1 if args.stage == 1 else cfg.batch_size2
+    bs = cfg.batch_size1 if args.stage == 1 else (args.batch_size2 or cfg.batch_size2)
     ds = SeqDataset(user_train, usernum, itemnum, cfg.maxlen)
     loader = DataLoader(ds, batch_size=bs, shuffle=(args.stage == 2), pin_memory=True)
     num_batch = len(user_train) // bs

@@ -9,7 +9,68 @@
 > chats can pick up and continue the work. Read this end-to-end before touching
 > anything.
 
-Last updated: 2026-07-21.
+Last updated: 2026-07-29.
+
+**Reading order for a fresh session:** (1) this file, (2) `INFRASTRUCTURE.md` (the 4
+code locations + how they sync — read before touching the remote), (3) `RESULTS.md`
+(numbers ledger), (4) `STORY.md` (plain-English explanation of the align/inject/
+fine-tuning levers + how we position the paper and the narrative to avoid the v1
+rejection trap), (5) `DATASETS.md` (per-dataset provenance/prep/selection + the
+subsampling method). Persistent memory index: `MEMORY.md` in the memory dir.
+
+---
+
+## 0.0 CURRENT STATUS & NEXT STEPS (keep this updated; it goes stale fastest)
+
+_As of 2026-07-30:_
+
+**Design decisions LOCKED this session (see `STORY.md` for the full rationale):**
+- **Single backbone = ViT-L/14** everywhere (headline + fine-tuning). bigG is
+  appendix-only — it *inverts* the cold/warm effect, which is why ViT-L was chosen.
+- **RQ2 / fusion DROPPED.** `clip_inject` is always `concat`. Paper RQs are now:
+  RQ1 (coldness) + mechanism (`align` vs `inject`) + RQ3 (fine-tuning).
+- **SASRec CF-only baseline ADDED** (`scripts/eval_sasrec.py`). Per-dataset ladder:
+  **SASRec → text → clip_align → clip_inject → clip_inject+fine-tune** (all ViT-L,
+  concat, 1 seed for now). Cold-slice ladder on Luxury: 0.168 → 0.408 → 0.485.
+- **All RQs on all 3 datasets** (Luxury Beauty, All Beauty, Video Games).
+- Known blocker: `open_clip` not installed on this box → new-dataset CLIP extraction +
+  ViT-L fine-tune are pending its install. Runtime: Stage-2 ≈ ~10h/run at bs=6 (the
+  throughput bottleneck for the 3-dataset fan-out).
+
+**Done (clean pipeline, Amazon Luxury Beauty, 1 seed each, Hit@1 fuzzy@0.90):**
+- RQ3 complete: `clip_inject` + ViT-L/14 zero-shot (0.5976) vs fine-tuned (0.5674).
+  **Fine-tuning HURT recommendation ~3pt** (negative but publishable finding). See §11.1.
+- **`text` baseline (no vision):** overall 0.6014 / cold 0.4082 / warm 0.7196.
+- **`clip_inject` + bigG:** overall 0.6048 / cold 0.3986 / warm 0.7310.
+  (Both finished 2026-07-29; now recorded in `RESULTS.md` rows #3–#4.)
+
+**⚠️ First mechanism result is preliminary AND inverts the headline hypothesis.**
+`clip_inject − text` (bigG, 1 seed) = **+0.003 overall, −0.010 cold, +0.011 warm**. Vision
+here **helps warm** and **slightly hurts cold** — the opposite of RQ1's "vision helps cold
+items most." This is NOT yet a result to build on: (a) only 1 seed (no significance; the
+±1 pt cold/warm swings are within likely seed noise), and (b) **`clip_align` was never run**,
+so we can't tell "vision doesn't help cold" from "vision doesn't reach cold via this
+mechanism." See `RESULTS.md` → "RQ1 / mechanism contrast."
+
+**Immediate next steps (not yet run), in priority order:**
+1. **`clip_align` + bigG** — the paper's original bottleneck mechanism and the MISSING middle
+   of the mechanism comparison (text vs clip_align vs clip_inject) = the RQ1 headline. Run
+   this before interpreting the cold/warm inversion above.
+2. **Multi-seed (≥10)** for text / clip_align / clip_inject on bigG — the current ±1 pt
+   cold/warm deltas need significance before any RQ1 claim.
+3. **RQ2 fusion** ablation (clip_inject: mean vs gating; concat already done).
+4. Start the paper draft once RQ1 (with clip_align + multi-seed) is in — and be ready for the
+   story to be "vision helps warm, not cold" if that holds up (still publishable as analysis).
+
+**Infra note (2026-07-30):** this checkout lives at `/users/kavach_d/CLAM-Rec-v2` and the
+recent `text`/`bigG` runs executed here directly on A6000 GPUs 0/2 — i.e. this box IS the
+remote GPU box (`dreal_gpu`), not the local 4080 described in older sections. Adjust paths
+accordingly (env `ALLM-Rec` at `~/anaconda3`, not `~/Dev/anaconda3`).
+
+**Key gotchas** (details later in this doc / INFRASTRUCTURE.md): batch_size2≤4 &
+batch_size_infer≤16 on the A6000 or it OOMs; OPT loads via safetensors auto-conversion;
+run long jobs detached (`setsid nohup`), kill by PID; embeddings are regenerated on the
+LOCAL box (remote lacks open_clip + images) then rsynced.
 
 ---
 
@@ -369,9 +430,14 @@ inference seeds each, then prints the sliced result tables with significance.
 | Model: 3 variants + fusion | ✅ (Stage 1 + wiring validated on 16GB) |
 | Full pipeline seam (train→infer→sliced report) | ✅ validated end-to-end with tiny LLM |
 | Env fix: OPT `.bin` → safetensors (CVE block) | ✅ (would have crashed A6000 run) |
-| RQ3 CLIP fine-tuning + proxy analysis | ✅ done early (§11); rec-impact needs A6000 |
+| RQ3 CLIP fine-tuning + proxy analysis | ✅ done (§11) |
 | clip_variant selection (bigG/vitl14_zeroshot/vitl14_ft) | ✅ config + drivers, no collisions |
-| **Full matrix run (RQ1/RQ2/RQ3 recommendation Hit@1)** | ⏳ **needs A6000** — `bash scripts/run_all.sh` |
+| Deployed + validated on dreal_gpu (A6000, GPU 2) | ✅ SSH, clone, rsync, train/infer work |
+| **RQ3 recommendation result (ViT-L, 1 seed)** | ✅ DONE — fine-tuning HURT rec ~3pt (§11.1); see RESULTS.md |
+| **RQ1/mechanism (bigG): `text` + `clip_inject`** | ✅ seed 0 done (§0.0, RESULTS.md #3–#4). `clip_align` STILL MISSING |
+| **RQ1/mechanism (bigG): `clip_align`** | ⏳ **NOT run — the missing middle of the contrast** |
+| **RQ2 fusion (bigG): mean / gating** | ⏳ NOT run (concat done via clip_inject #4) |
+| Multi-seed significance (≥10 seeds) | ⏳ currently 1 seed per model |
 | Paper writing | ⏳ not started |
 
 **Immediate next action when compute is available:** run `scripts/run_all.sh`,
@@ -424,11 +490,55 @@ sliced cold/warm). ⚠️ This is a **retrieval proxy**, not recommendation Hit@
 (same model) — NOT vs bigG. To also run the main RQ1/RQ2 with ViT-L, point the
 config's `clip_text_npy`/`clip_image_npy` at the ViT-L files (and set `clip_dim=768`).
 
+### 11.1 RQ3 RECOMMENDATION result (run on GPU, 2026-07-27) — a NEGATIVE finding
+
+We ran `clip_inject` with both ViT-L CLIP sets (1 seed each) on OPT-6.7B. Hit@1
+(fuzzy@0.90), sliced cold/warm:
+
+| Slice | Zero-shot CLIP | Fine-tuned CLIP | Δ |
+|-------|---------------:|----------------:|----:|
+| Overall | 0.5976 | 0.5674 | **−0.030** |
+| Cold | 0.4845 | 0.4494 | **−0.035** |
+| Warm | 0.6668 | 0.6396 | **−0.027** |
+
+**Fine-tuning CLIP HURT recommendation by ~3 pts across all slices** — even though it
+*improved* image↔text retrieval (proxy R@1 0.53→0.63). This is the domain-overspecialization
+risk realized: fine-tuning makes each item's image/text more self-consistent but collapses
+the cross-item general semantic structure the recommender needs. **Retrieval quality ≠
+recommendation quality.**
+
+This is a **publishable negative result** for the analysis paper: "domain fine-tuning of
+CLIP improves alignment but degrades recommendation; zero-shot general CLIP is better —
+a warning against naive fine-tune-on-your-domain." See `RESULTS.md` for the numbers ledger.
+
+**Caveats:** (1) 1 seed only — not yet statistically confirmed (need ≥2 seeds for the
+paired t-test). (2) This is ViT-L `clip_inject` only. The **headline RQ1/RQ2 (bigG:
+text / clip_align / clip_inject, + fusion) have NOT been run yet.**
+
+### 11.2 Operational lessons from the GPU run (important for future runs)
+- **OPT `.bin` loading:** the remote env auto-converts to safetensors (`ensure_safetensors`);
+  first run writes ~13GB to `~/.cache/clam_rec/opt_safetensors/`.
+- **Batch sizes (A6000 49GB):** Stage-2 `batch_size2=8` and `16` both **OOM'd** — Stage-2
+  peak memory is driven by the *longest sequence in a batch*, so a batch can run for
+  hundreds of steps then OOM on a heavy one. **`batch_size2=4` is the safe working value**
+  (~22GB, ~4× faster than bs=1). **`batch_size_infer=64` OOM'd during GENERATION**
+  (KV cache × 64 seqs in 8-bit); use **`batch_size_infer=16`** (validated safe).
+- **Generation memory ≫ training memory per-sample** — keep the inference batch small.
+- Batch tweaks live in a **separate config** (`configs/luxury_beauty_rq3.yaml`); the base
+  `luxury_beauty.yaml` is left at its defaults.
+- Long jobs run **detached** (`setsid nohup … &`) logging to a file; kill by **PID**
+  (setsid escapes `pkill -f`). Resume script `scripts/run_rq3_resume.sh` is idempotent
+  (skips trained checkpoints + existing seed outputs).
+
 ---
 
 ## 10. For a future Claude session (onboarding checklist)
 
-1. Read this file top to bottom. It is the plan.
+1. Read this file top to bottom. It is the plan. Then read **`RESULTS.md`** — the
+   factual ledger of every experiment run and its metrics (append new results there).
+   Also read **`INFRASTRUCTURE.md`** — explains the 4 locations (old project, local
+   clean repo, GitHub, remote GPU box), how they sync, and why they drift. Read it
+   before touching the remote or moving files, or you WILL get confused.
 2. The persistent memory index is at
    `~/.claude/projects/-home-kavach-Dev-Extension-Paper/memory/MEMORY.md`
    (individual notes there mirror this doc but this doc is authoritative).

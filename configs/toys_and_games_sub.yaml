@@ -1,0 +1,46 @@
+# CLAM-Rec v2 — Toys & Games (random 15%-user subsample, seed 42) config.
+# Big dataset made tractable via principled user-subsample (scripts/subsample_dataset.py):
+# 9,513 users / 7,253 items, 5-core, 91.7% image coverage, 47% cold. ViT-L single backbone.
+
+dataset:
+  name: Toys_and_Games_sub
+  interactions: assets/Toys_and_Games_sub.txt
+  text_name_dict: assets/Toys_and_Games_sub_text_name_dict.json.gz
+  meta_json: data/raw/meta_Toys_and_Games_sub.json
+  reviews_gz: data/raw/Toys_and_Games.json.gz
+  maxlen: 50
+
+sasrec:                                             # trained on the subsample (9513u/7253i)
+  checkpoint: assets/sasrec_Toys_and_Games_sub.pth
+  hidden_units: 50
+  num_blocks: 2
+  num_heads: 1
+  dropout_rate: 0.5
+
+clip:
+  model_id: "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+  dim: 1280
+  text_prompt_prefix: "a product photo of "
+  images_dir: data/images/Toys_and_Games_sub
+  fused_out: data/clip/clip_fused_Toys_and_Games_sub.npy
+  fusion: concat
+
+model:
+  llm: opt
+  variant: clip_inject
+  joint_dim: 128
+
+train:
+  batch_size1: 32
+  batch_size2: 6
+  batch_size_infer: 16
+  num_epochs: 10
+  stage1_lr: 0.0001
+  stage2_lr: 0.0001
+
+eval:
+  candidate_num: 20
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  fuzzy_threshold: 0.90
+  cold_threshold: 5
+  metrics_k: [1, 5, 10]

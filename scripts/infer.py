@@ -43,9 +43,14 @@ def main():
     ap.add_argument("--clip_variant", default=None, help="bigG | vitl14_zeroshot | vitl14_ft")
     ap.add_argument("--seed", type=int, required=True)
     ap.add_argument("--max_users", type=int, default=0, help="limit users (smoke test only)")
+    ap.add_argument("--rank", action="store_true",
+                    help="likelihood-ranking eval: rank the candidate set -> logs 'ranked' for Hit@1/5, NDCG@5")
+    ap.add_argument("--rank_chunk", type=int, default=0, help="candidates scored per forward (0=default 8; use 20 on a free GPU)")
     args = ap.parse_args()
 
     over = {"stage": "inference"}
+    if args.rank_chunk:
+        over["rank_chunk"] = args.rank_chunk
     if args.variant:
         over["variant"] = args.variant
     if args.fusion:
@@ -55,7 +60,7 @@ def main():
     cfg = load_config(args.config, **over)
     set_seed(args.seed)
 
-    run = f"{cfg.variant}_{cfg.fusion}"
+    run = f"{cfg.dataset}_{cfg.variant}_{cfg.fusion}"   # dataset prefix: avoid cross-dataset collisions
     if getattr(cfg, "clip_variant", "bigG") != "bigG":
         run += f"_{cfg.clip_variant}"
 
@@ -83,13 +88,18 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         for data in loader:
             u, seq, pos, neg = (x.numpy() for x in data)
-            gen, ans = model.generate([u, seq, pos, neg])
+            if args.rank:
+                gen, ans, ranked = model.rank_candidates([u, seq, pos, neg])
+            else:
+                gen, ans = model.generate([u, seq, pos, neg])
             for j in range(len(u)):
                 uid = int(u[j])
                 tag = tags.get(uid, {"cold": None, "train_count": None})
                 rec = {"user": uid, "seed": args.seed,
                        "cold": tag["cold"], "train_count": tag["train_count"],
                        "answer": ans[j], "generated": gen[j]}
+                if args.rank:
+                    rec["ranked"] = ranked[j]
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 n += 1
     print(f"wrote {n} records -> {out_path}")

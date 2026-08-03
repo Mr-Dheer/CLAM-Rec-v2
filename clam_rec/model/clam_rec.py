@@ -114,7 +114,7 @@ class ClamRec(nn.Module):
         image = np.load(cfg.clip_image_npy)
         self.clip_text = torch.tensor(text, dtype=torch.float32)
         self.clip_image = torch.tensor(image, dtype=torch.float32)
-        if self.fusion in ("concat", "mean"):
+        if self.fusion in ("concat", "mean", "text_only"):
             fused = static_fuse(self.fusion, text, image)
             self.clip_fused = torch.tensor(fused, dtype=torch.float32)
         else:
@@ -278,7 +278,7 @@ class ClamRec(nn.Module):
 
         interact_emb = self.item_emb_proj(self.get_item_emb(interact_ids))
         candidate_emb = self.item_emb_proj(self.get_item_emb(candidate_ids))
-        out = dict(prompt=prompt, target_title=target_title,
+        out = dict(prompt=prompt, target_title=target_title, candidate_ids=candidate_ids,
                    interact_emb=interact_emb, candidate_emb=candidate_emb)
         if self.variant == "clip_inject":
             out["interact_mm"] = self.mm_emb_proj(self.content_emb(interact_ids))
@@ -358,3 +358,41 @@ class ClamRec(nn.Module):
         outputs[outputs == 0] = 2
         text = self.llm.llm_tokenizer.batch_decode(outputs, skip_special_tokens=True)
         return [t.strip() for t in text], answers
+
+    # ================================================================== #
+    # inference (likelihood ranking -> Hit@1/5, NDCG@5)
+    # ================================================================== #
+    @torch.no_grad()
+    def rank_candidates(self, data):
+        """For each user, score the candidate set by the LLM's length-normalized
+        likelihood of each candidate title (given the same prompt + soft tokens used
+        by generate()), and rank. Returns (generated_top1, answers, ranked_lists)."""
+        u, seq, pos, neg = data
+        log_emb = self.recsys.model(u, seq, pos, neg, mode="log_only")
+        log_emb = self.log_emb_proj(log_emb)
+        generated, answers, ranked_lists = [], [], []
+        chunk = getattr(self.cfg, "rank_chunk", 8)   # candidates scored per LLM forward (memory bound)
+        for i in range(len(u)):
+            s = self._build_sample(u, seq, pos, i)
+            cand_ids = list(s["candidate_ids"])
+            cand_titles = [self._title(c) for c in cand_ids]
+            n = len(cand_ids)
+            scores = []
+            for c0 in range(0, n, chunk):
+                idx = list(range(c0, min(c0 + chunk, n)))
+                m = len(idx)
+                sub = {"text_input": [s["prompt"]] * m,
+                       "text_output": [cand_titles[k] for k in idx],
+                       "interact": [s["interact_emb"]] * m, "candidate": [s["candidate_emb"]] * m}
+                if self.variant == "clip_inject":
+                    sub["interact_mm"] = [s["interact_mm"]] * m
+                    sub["candidate_mm"] = [s["candidate_mm"]] * m
+                log_emb_c = log_emb[i].unsqueeze(0).repeat(m, 1)
+                scores.append(self.llm.score_titles(log_emb_c, sub))
+            scores = torch.cat(scores)                                  # (n,) higher = better
+            order = torch.argsort(scores, descending=True).cpu().numpy()
+            ranked = [cand_titles[j] for j in order]
+            answers.append(s["target_title"])
+            generated.append(ranked[0])
+            ranked_lists.append(ranked)
+        return generated, answers, ranked_lists

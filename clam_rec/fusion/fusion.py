@@ -43,6 +43,10 @@ def static_fuse(method: str, text: np.ndarray, image: np.ndarray) -> np.ndarray:
         return fuse_concat(text, image)
     if method == "mean":
         return fuse_mean(text, image)
+    if method == "text_only":
+        # ablation: CLIP-TEXT only (drop the image half) — isolates whether the
+        # benefit comes from the image or just from CLIP-text being > SBERT.
+        return text.astype(np.float32)
     raise ValueError(f"static_fuse: '{method}' is not a static method (use gating module)")
 
 
