@@ -1,8 +1,12 @@
 """
-Publication figure: the CF<->LLM crossover. Left panel: Hit@1 advantage of the LLM
-(text) over CF (SASRec) vs the target item's TRAIN interaction count, one line per
-dataset -> monotonic decay crossing zero (LLM wins cold, CF wins warm). Right panel:
-vision effect (clip_inject - text) -> flat near zero (vision null). Ranking eval.
+⛔ VISION-PAPER figure (out of scope for the current CF<->LLM paper — see FINDING_3.md).
+Its right panel is the vision-null result. The CURRENT paper's crossover figure is
+figures/crossover_sparsity.{pdf,png} (crossover curves + density scatter), from
+scripts/plot_crossover_sparsity.py.
+
+Left panel: Hit@1 advantage of the LLM (text) over CF (SASRec) vs the target item's TRAIN
+interaction count -> monotone decay crossing zero. Right panel: vision effect
+(clip_inject - text) -> flat near zero (vision null). Ranking eval. Current 4 datasets.
 
 Usage: python scripts/plot_crossover.py  ->  figures/crossover.{pdf,png}
 """
@@ -16,9 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from clam_rec.eval.metrics import record_hit_at_1
 
 FUZZY = 0.90
-DATASETS = [("Luxury_Beauty", "Luxury Beauty"), ("All_Beauty", "All Beauty"),
-            ("AMAZON_FASHION", "Fashion"), ("Prime_Pantry", "Prime Pantry"),
-            ("Toys_and_Games_sub", "Toys")]
+DATASETS = [("Luxury_Beauty", "Luxury Beauty"), ("AMAZON_FASHION", "Fashion"),
+            ("Toys_and_Games_sub", "Toys"), ("Prime_Pantry", "Prime Pantry")]  # All Beauty dropped 2026-08-04
 BINS = [(0, 0), (1, 2), (3, 5), (6, 10), (11, 20), (21, 50), (51, 10**9)]
 XLAB = ["0", "1-2", "3-5", "6-10", "11-20", "21-50", "51+"]
 
