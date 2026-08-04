@@ -35,8 +35,9 @@ This file (`FINDINGS.md`) is the master index for **this** paper.
 2. **The crossover point is predicted by dataset density** — it lands near the dataset's mean
    interactions/item (Pearson r ≈ +0.98; r ≈ +0.99 vs mean history length). (§5)
 3. **Popularity-gated fusion (prescriptive)** — weighting each candidate's CF vs LLM score by that
-   candidate's popularity beats *both* pure models on all 4 datasets and ≈ the oracle ceiling;
-   naive fusion (RRF, equal-weight) does not. (§7)
+   candidate's popularity beats *both* pure models on **Hit@1 and NDCG@{5,10} across all 4 datasets**
+   (and on Hit@5/10 on the 3 LLM-competitive ones), ≈ the oracle ceiling; naive fusion (RRF,
+   equal-weight) does not. (§7)
 
 **Headline numbers** (ranking, Hit@1, 20 candidates, seed 0):
 

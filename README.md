@@ -17,8 +17,8 @@ item popularity across four Amazon datasets.
 2. **The crossover point is predicted by dataset density.** It lands near the dataset's mean
    interactions/item (Pearson **r = 0.98**) — predictive, not just descriptive.
 3. **A popularity-gated fusion beats both.** Weighting each candidate's CF vs LLM score by that
-   candidate's popularity beats *both* pure models on Hit@1 across all 4 datasets (≈ an oracle upper
-   bound); naive fusion (RRF, equal-weight) does not.
+   candidate's popularity beats *both* pure models on **Hit@1 and NDCG** across all 4 datasets
+   (≈ an oracle upper bound); naive fusion (RRF, equal-weight) does not.
 
 ## Setup
 - **Variants:** `SASRec` (CF only) and `text` (A-LLMRec). Likelihood ranking over **20 candidates**

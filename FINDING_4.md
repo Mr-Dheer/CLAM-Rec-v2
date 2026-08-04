@@ -7,8 +7,9 @@
 
 **One-line finding.** Because CF and the LLM are complementary along popularity (Finding 1), we can
 *exploit* it: a **popularity-gated score fusion** — for each candidate, weight its CF vs LLM score by
-that candidate's own popularity — **beats both pure CF and pure LLM on all 4 datasets**, and nearly
-matches an oracle upper bound. **Naive fusion (RRF, equal-weight) does not help** — you must use the
+that candidate's own popularity — **beats both pure CF and pure LLM on Hit@1 and NDCG@{5,10} across
+all 4 datasets** (and on Hit@5/10 too on the 3 LLM-competitive datasets), and nearly matches an oracle
+upper bound. **Naive fusion (RRF, equal-weight) does not help** — you must use the
 crossover. This turns the paper from *descriptive* (there is a crossover) to *prescriptive* (here is
 how to exploit it).
 
@@ -168,8 +169,9 @@ pop-gate wins Hit@1/NDCG yet loses Hit@5/10 to pure CF (see its table above).
 
 ## 7. How to read the results (in depth)
 
-1. **pop-gate beats both pure models on Hit@1 in all 4 datasets**, and on the three LLM-competitive
-   ones (Luxury/Fashion/Toys) it wins essentially every column (Hit@1/5/10, NDCG@5/10). **Prime Pantry
+1. **pop-gate beats both pure models on Hit@1 *and* NDCG@{5,10} in all 4 datasets** — the universal
+   win is on the top-precision and position-weighted metrics, not just Hit@1. On the three
+   LLM-competitive ones (Luxury/Fashion/Toys) it wins **every** column (Hit@1/5/10, NDCG@5/10). **Prime Pantry
    is the exception:** CF-dominant, so pop-gate wins Hit@1 and NDCG but pure CF wins Hit@5/10 (§6).
 2. **pop-gate ≈ oracle** on the three LLM-competitive datasets (within ~0.01–0.02, sometimes above,
    since per-candidate weighting is finer than the oracle's single route). On Prime Pantry it trails
@@ -248,8 +250,9 @@ evaluated on the held-out half.
   > a popularity-gated fusion: we z-normalize each model's candidate scores per user and combine them
   > per candidate as `w·s_CF + (1−w)·s_LLM`, with `w = pop/(pop+pivot)` weighting collaborative
   > filtering by the candidate's popularity (`pivot` = mean interactions per item, the measured
-  > crossover). This deployable fusion beats both pure models on all four datasets (+0.015 to +0.031
-  > Hit@1) and matches an oracle that routes by the true item's popularity. Popularity-agnostic fusion
+  > crossover). This deployable fusion beats both pure models on Hit@1 and NDCG (@5 and @10) on all
+  > four datasets (Hit@1 gains +0.015 to +0.032), and on Hit@5/10 on the three LLM-competitive
+  > datasets; it matches an oracle that routes by the true item's popularity. Popularity-agnostic fusion
   > — reciprocal-rank fusion or equal-weight score fusion — does not help and is often worse than the
   > better single model, showing the gain comes specifically from exploiting the popularity structure.
   > A gate with a learned popularity threshold matches the fixed rule, confirming it is near-optimal."

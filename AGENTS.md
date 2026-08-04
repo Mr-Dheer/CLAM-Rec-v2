@@ -30,5 +30,5 @@ Infra/how-to-run: `INFRASTRUCTURE.md`.
 - All numbers are already in the docs — you generally don't need to re-run. If you do, analysis
   scripts are CPU/fast; only `scripts/infer.py` needs a GPU. Env: `conda run -n ALLM-Rec python ...`.
 - All 4 findings are complete (incl. Prime Pantry fusion). Honest nuance: pop-gate beats both pure
-  models on Hit@1 in all 4, but Prime Pantry is CF-dominant so there CF wins Hit@5/10 — see
-  `FINDING_4.md`. No open experiments.
+  models on Hit@1 and NDCG@{5,10} in all 4 (and Hit@5/10 on 3/4), but CF-dominant Prime Pantry has
+  CF winning Hit@5/10 — see `FINDING_4.md`. No open experiments.

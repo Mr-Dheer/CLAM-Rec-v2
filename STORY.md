@@ -47,8 +47,9 @@ is the **empirical CF/LLM complementarity along the popularity axis + the vision
 **Prescriptive kicker (2026-08-03): the crossover is exploitable.** A simple **popularity-gated
 score fusion** — weighting each candidate's CF vs LLM score by that candidate's own popularity
 (`w=pop/(pop+pivot)`; deployable, popularity known at inference) — **beats both pure CF and pure
-LLM on all 4 datasets** (+0.015 to +0.031 Hit@1, up to +0.058 Hit@5), essentially matching the
-oracle upper bound. Critically, **naive fusion fails**: rank fusion (RRF) is *negative* and
+LLM on Hit@1 and NDCG@{5,10} across all 4 datasets** (Hit@1 +0.015 to +0.032; and Hit@5/10 on the 3
+LLM-competitive ones — CF-dominant Prime Pantry is the exception at Hit@5/10), essentially matching
+the oracle upper bound. Critically, **naive fusion fails**: rank fusion (RRF) is *negative* and
 equal-weight score fusion is neutral — only fusion that *uses the crossover* (popularity weighting)
 wins. So the paper goes from *descriptive* (there is a crossover) to *prescriptive* (here's how to
 exploit it). Evidence: `scripts/analysis_ensemble.py`, `RESULTS.md` → "CF+LLM fusion".

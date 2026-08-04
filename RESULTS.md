@@ -226,8 +226,8 @@ wins Hit@5/10 there.
 (using the crossover) beats both pure models. On the CF-dominant Prime Pantry, both z-fuse and
 pop-gate beat pure CF on Hit@1 (the LLM adds a little on cold), with pop-gate still best. So the
 takeaway holds: **the crossover is prescriptive — a deployable popularity-gated fusion beats both
-pure models on Hit@1 across all 4 datasets** (and dominates at every k on the three LLM-competitive
-ones; on CF-dominant Prime Pantry it wins Hit@1/NDCG but not Hit@5/10).
+pure models on Hit@1 and NDCG@{5,10} across all 4 datasets** (and on Hit@5/10 too on the three
+LLM-competitive ones; on CF-dominant Prime Pantry it wins Hit@1/NDCG but pure CF wins Hit@5/10).
 
 ---
 
