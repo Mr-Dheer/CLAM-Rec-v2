@@ -114,7 +114,7 @@ training sequences. The number of gradient updates `e_i` receives ≈ its `train
 - **`train_count = 0`** → `e_i` is **never updated** → it stays at its (near-zero / random)
   initialization. A dot-product with an uninformative vector produces an essentially random score →
   the true item is ranked at chance. This is exactly what we see: **SASRec Hit@1 = 0.000 at
-  train_count 0** on Luxury (n=1111), All Beauty (n=621), Toys (n=108), and 0.001 on Fashion. It is
+  train_count 0** on Luxury (n=1111), Toys (n=108), Prime Pantry (n=498), and 0.001 on Fashion. It is
   not "low," it is *the model has literally learned nothing about this item.* (Observed at
 train_count=0: SASRec Hit@1 = 0.000 on Luxury n=1111, Toys n=108, Prime Pantry n=498; 0.001 on Fashion.)
 - As `train_count` grows, `e_i` gets more updates → becomes informative → SASRec climbs steeply
@@ -190,7 +190,7 @@ that cold-start exists*.
 - **20 candidates** (bounded by OPT context; `EVAL_PROTOCOL.md`). Metrics are optimistic vs a
   100-negative eval, but the crossover *direction* is candidate-count-robust.
 - **Toys is subsampled** (random users, seed fixed pre-results, SASRec retrained; `DATASETS.md`).
-- Late bins on tiny datasets (All Beauty 21–50, n=18) are noisy — read the trend, not single bins.
+- Small warm slices (e.g. Fashion 51+, n=103) are noisy — read the monotone trend, not single bins.
 
 ---
 

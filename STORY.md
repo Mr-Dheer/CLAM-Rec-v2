@@ -1,12 +1,14 @@
-# CLAM-Rec v2 — Method Levers & Paper Story
+# CLAM-Rec v2 — Method Levers & Paper Story (⛔ SUPERSEDED — DESIGN HISTORY)
 
-> Two parts. **Part 1** explains, plainly, what the experimental levers
-> (`clip_align`, `clip_inject`; fine-tuning is dropped, kept only for context) actually
-> *do*. **Part 2** explains
-> how we position the paper and what the story is. Read `PROJECT.md` for the full
-> design; this doc is the conceptual + narrative companion.
+> ⛔⛔ **SUPERSEDED / HISTORICAL — vision-centric.** Parts 1 & 2 are about the CLIP vision levers,
+> which are **out of scope for the current paper** (CF vs LLM). For current scope/story/numbers use
+> `CLAUDE.md`, `FINDINGS.md`, `FINDING_1/2/4.md`, `RESULTS.md`; vision is a separate paper
+> (`FINDING_3.md`). Kept only for the narrative backstory.
 
-Last updated: 2026-08-03. Backbone: **ViT-L/14 single backbone**.
+> _(Original note:)_ Two parts. **Part 1** = what the experimental levers (`clip_align`,
+> `clip_inject`) do; **Part 2** = positioning. Conceptual/narrative companion to `PROJECT.md`.
+
+Last updated: 2026-08-03.
 
 ---
 

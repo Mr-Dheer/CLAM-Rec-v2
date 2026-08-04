@@ -29,8 +29,8 @@ and *also* the user's history titles, so real prompts are longer still):
 | Prime Pantry | 703 | 1,623 | **3,088 ✗** |
 
 - **N=100 overflows 2,048 on every dataset** → impossible.
-- **N=50 is already the theoretical ceiling** (1,863 on All Beauty), and once the full user
-  history is included in the prompt it becomes unsafe for long-history users → crash risk.
+- **N=50 is already the theoretical ceiling** (~1,600 on the longest-title datasets), and once the
+  full user history is included in the prompt it becomes unsafe for long-history users → crash risk.
 - **N=20 fits comfortably with headroom on all datasets** — which is precisely why A-LLMRec
   (the base) uses 20. This is a **property of the base architecture**, verified empirically
   (a 100-candidate probe crashed as predicted, 2026-08-03).

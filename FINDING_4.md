@@ -180,9 +180,10 @@ pop-gate wins Hit@1/NDCG yet loses Hit@5/10 to pure CF (see its table above).
    - its **warm** Hit@1 ≈ the **CF's** warm (Luxury 0.709 vs CF 0.706).
    It **inherits the stronger expert in each regime** — exactly the design intent, observable in the
    numbers.
-4. **Naive fusion clearly loses.** RRF Hit@1 is *below* the best pure model on Luxury (0.539 < 0.600),
-   Fashion (0.252 < 0.292), All Beauty (~tie). z-fuse is ~neutral. Both only creep up at Hit@10 (where
-   throwing candidates roughly-right is easier). This is the evidence that the *popularity weighting*
+4. **Naive fusion clearly loses on the LLM-favorable datasets.** RRF Hit@1 is *below* the best pure
+   model on Luxury (0.539 < 0.600) and Fashion (0.252 < 0.292), and ~tie on Toys/Prime Pantry; z-fuse
+   is ~neutral (though on CF-dominant Prime Pantry z-fuse and pop-gate both edge past pure CF on
+   Hit@1). Only popularity-weighted fusion wins broadly — the evidence that the *popularity weighting*
    is what matters.
 5. **Honest nuance — Toys cold.** pop-gate cold (0.182) is *below* pure LLM (0.228). Toys' pivot is
    high (8.3), so even cold items (train ≤5) get non-trivial CF weight `w = pop/(pop+8.3)` (up to

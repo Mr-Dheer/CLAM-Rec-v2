@@ -1,13 +1,18 @@
-# CLAM-Rec v2 — Project Design Document
+# CLAM-Rec v2 — Project Design Document (⛔ SUPERSEDED — DESIGN HISTORY)
 
-**"When Does Vision Help LLM-based Sequential Recommendation?"**
+> ⛔⛔ **THIS DOC IS SUPERSEDED / HISTORICAL.** It predates the pivots and is **vision-centric**
+> (its old title below is wrong for the current paper). The current paper is **CF vs LLM** (crossover
+> → density → fusion), no vision. **For current scope/story/numbers use `CLAUDE.md`, `FINDINGS.md`,
+> `FINDING_1/2/4.md`, `RESULTS.md`.** Vision is a separate paper (`FINDING_3.md`). Read this only for
+> the project's backstory (why the CLIP code exists, the A-LLMRec base, the earlier RQ framing). Do
+> **not** take its title, RQs, dataset lists, or "vision helps" framing as current. §0.0 below is the
+> most up-to-date part of this file.
 
-> This is the single source of truth for the project. It explains *why* we are
-> doing this, *how* the paper is positioned, *what* the method is, and *how* the
-> code implements it. It is written so that (a) a human can read it and understand
-> the whole project, and (b) a fresh Claude Code session with no memory of prior
-> chats can pick up and continue the work. Read this end-to-end before touching
-> anything.
+**Old title (superseded): "When Does Vision Help LLM-based Sequential Recommendation?"**
+
+> _(Original intent, kept for history:)_ single source of truth for the project — *why*, *how* it's
+> positioned, *what* the method is, and *how* the code implements it, written so a human or a fresh
+> session can pick up the work.
 
 Last updated: 2026-08-03.
 

@@ -13,6 +13,11 @@ TRAIN interaction count ≤ 5 → cold). Last updated: 2026-07-31.
 
 ## Selection criteria (learned empirically — some the hard way)
 
+> _Note (2026-08-04): these criteria are the **original vision-era** selection rationale (criterion 1
+> is about whether images help — now out of scope; vision is a separate paper). For the current CF↔LLM
+> paper the relevant facts are just the **final 4 datasets** table above; the size / cold-warm / CF-weak
+> properties (criteria 2–5) still matter, the "item-discriminative images" one does not._
+
 A candidate must clear **all** of these:
 1. **Item-discriminative images** — the images must identify the specific item (beauty
    product shots ✓; fashion model/flat-lay/packaging soup ✗). This is the *only* strong

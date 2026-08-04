@@ -260,12 +260,23 @@ ones; on CF-dominant Prime Pantry it wins Hit@1/NDCG but not Hit@5/10).
 
 ---
 
+---
+
+# ⛔⛔ EVERYTHING BELOW IS HISTORICAL — DO NOT USE FOR THE PAPER ⛔⛔
+
+> **All content from here down is superseded**: the **generation** protocol (pre-ranking), the
+> **vision/CLIP** experiments (now a separate paper, `FINDING_3.md`), the parked **bigG / RQ3 /
+> fusion-study** runs, **All Beauty** (dropped), and the old **Prime Pantry "excluded"** note (it is
+> now reinstated — see the ranking + fusion tables at the top). It also uses the old dataset framing.
+> **The paper's numbers are the RANKING + FUSION tables at the TOP of this file.** This tail is kept
+> only as a run ledger / for the vision paper.
+
+---
+
 ## Results table (Hit@1, fuzzy@0.90) — GENERATION protocol (secondary/historical)
 
 > ⚠️ The tables from here down are the earlier **generation** protocol (the LLM *generates* one
-> title; Hit@1 by title match). They are kept for the record and for the generation-vs-ranking
-> contrast (esp. the Luxury vision reversal). **The reported numbers are the RANKING tables at the
-> top of this file.**
+> title; Hit@1 by title match), kept for the record and the generation-vs-ranking contrast.
 
 
 | # | Variant | CLIP set | Seeds | Overall | Cold | Warm | Date |
