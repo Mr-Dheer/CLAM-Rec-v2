@@ -6,7 +6,7 @@
 > there / where do I run things" — this document answers it. Read it before touching
 > anything on a remote box or moving files around.
 
-Last updated: 2026-07-29.
+Last updated: 2026-08-03.
 
 ---
 
@@ -117,9 +117,10 @@ a script on the remote for speed, remember to rsync it back and commit it afterw
   (`batch_size2=1`, `batch_size_infer=8`). Do NOT edit it for run tweaks — Kavach asked
   for this explicitly.
 - **Run-specific tweaks live in a SEPARATE config** `configs/luxury_beauty_rq3.yaml`
-  (currently `batch_size2=4`, `batch_size_infer=16` — the values that don't OOM on the
+  (currently `batch_size2=6`, `batch_size_infer=16` — values that don't OOM on the
   A6000; see `PROJECT.md` §11.2 for the OOM lessons). The `run_*.sh` scripts point at
-  this config.
+  this config. (The `_rq3` filename is legacy — RQ3 itself is dropped; the file is just
+  the "A6000 batch-size overrides" config now.)
 
 ---
 
@@ -128,9 +129,9 @@ a script on the remote for speed, remember to rsync it back and commit it afterw
 | I want to... | Where / how |
 |--------------|-------------|
 | Edit model/eval/CLIP code | LOCAL `~/Dev/CLAM-Rec-v2`, then commit+push |
-| Extract / regenerate CLIP embeddings | LOCAL (has `open_clip`, images, bigG cached); remote does NOT have open_clip or images |
-| Fine-tune CLIP | LOCAL (fits 16GB with LoRA + grad checkpointing) |
-| Train/infer OPT-6.7B (the real runs) | REMOTE `dreal_gpu`, on GPU 2 or 0, via `scripts/run_*.sh` detached |
+| Extract / regenerate CLIP embeddings | wherever `open_clip` + images live (ViT-L/14 only; bigG dropped) |
+| Fine-tune CLIP | ⛔ dropped from scope (RQ3 parked) — no longer part of the pipeline |
+| Train/infer OPT-6.7B (the real runs) | on the A6000 box (GPUs), via `scripts/run_*.sh` detached |
 | Get new code onto the remote | push to GitHub, then `git pull`/`checkout` on remote |
 | Get new embeddings onto the remote | `rsync` local `data/clip/*.npy` → remote |
 | See results | `RESULTS.md` (ledger) + remote `results/*/seed_*.jsonl` + `logs/*.log` |

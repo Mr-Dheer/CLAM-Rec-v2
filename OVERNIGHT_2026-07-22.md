@@ -1,5 +1,10 @@
 # Overnight progress — morning briefing (2026-07-22)
 
+> ⚠️ **HISTORICAL SNAPSHOT — SUPERSEDED.** This is a point-in-time briefing. Since then the
+> thesis pivoted to the **CF↔LLM crossover** and CLIP fine-tuning was **dropped** from scope
+> (2026-08-03). Do not treat anything below as current. See `PROJECT.md §0.0`, `STORY.md`,
+> `RESULTS.md` for current scope.
+
 Hi Kavach — here's what I did while you were away. TL;DR: **CLIP fine-tuning works,
 the whole pipeline is now validated end-to-end, and I caught + fixed a bug that
 would have crashed the A6000 run.** Everything is committed and turnkey for the cluster.

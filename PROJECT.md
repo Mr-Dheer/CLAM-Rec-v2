@@ -9,68 +9,64 @@
 > chats can pick up and continue the work. Read this end-to-end before touching
 > anything.
 
-Last updated: 2026-07-29.
+Last updated: 2026-08-03.
 
 **Reading order for a fresh session:** (1) this file, (2) `INFRASTRUCTURE.md` (the 4
 code locations + how they sync — read before touching the remote), (3) `RESULTS.md`
 (numbers ledger), (4) `STORY.md` (plain-English explanation of the align/inject/
 fine-tuning levers + how we position the paper and the narrative to avoid the v1
 rejection trap), (5) `DATASETS.md` (per-dataset provenance/prep/selection + the
-subsampling method). Persistent memory index: `MEMORY.md` in the memory dir.
+subsampling method), (6) `EVAL_PROTOCOL.md` (why we rank over 20 candidates — a hard
+OPT-2048-context constraint, locked), (7) **`FINDINGS.md` — the detailed experiment-by-experiment
+walkthrough with code pointers; READ THIS (and the code it references) before writing the paper.**
+Persistent memory index: `MEMORY.md` in the memory dir.
 
 ---
 
 ## 0.0 CURRENT STATUS & NEXT STEPS (keep this updated; it goes stale fastest)
 
-_As of 2026-07-30:_
+_As of 2026-08-03. NOTE: much of the rest of this file (§2–§5, §11) predates the thesis
+pivot and still describes the vision-centric framing — it is kept for history. This §0.0,
+`STORY.md`, and `RESULTS.md` are the current source of truth for scope._
 
-**Design decisions LOCKED this session (see `STORY.md` for the full rationale):**
-- **Single backbone = ViT-L/14** everywhere (headline + fine-tuning). bigG is
-  appendix-only — it *inverts* the cold/warm effect, which is why ViT-L was chosen.
-- **RQ2 / fusion DROPPED.** `clip_inject` is always `concat`. Paper RQs are now:
-  RQ1 (coldness) + mechanism (`align` vs `inject`) + RQ3 (fine-tuning).
-- **SASRec CF-only baseline ADDED** (`scripts/eval_sasrec.py`). Per-dataset ladder:
-  **SASRec → text → clip_align → clip_inject → clip_inject+fine-tune** (all ViT-L,
-  concat, 1 seed for now). Cold-slice ladder on Luxury: 0.168 → 0.408 → 0.485.
-- **All RQs on all 3 datasets** (Luxury Beauty, All Beauty, Video Games).
-- Known blocker: `open_clip` not installed on this box → new-dataset CLIP extraction +
-  ViT-L fine-tune are pending its install. Runtime: Stage-2 ≈ ~10h/run at bs=6 (the
-  throughput bottleneck for the 3-dataset fan-out).
+**⭐ THESIS PIVOT — the headline is now the CF↔LLM crossover, not vision (see `STORY.md`).**
+Under the ranking eval, adding vision is a **null result**; but the data shows a strong,
+universal pattern: **the LLM (`text`) beats collaborative filtering (`SASRec`) on cold/rare
+items and loses to it on warm/popular items — a monotonic crossover in all 4 datasets.** The
+paper answers *"when do LLMs help sequential recommendation?"* → *exactly where CF is weak.*
+Vision is reported as a ruled-out confound. Evidence: `scripts/analysis_crossover.py`,
+`figures/crossover.*`.
 
-**Done (clean pipeline, Amazon Luxury Beauty, 1 seed each, Hit@1 fuzzy@0.90):**
-- RQ3 complete: `clip_inject` + ViT-L/14 zero-shot (0.5976) vs fine-tuned (0.5674).
-  **Fine-tuning HURT recommendation ~3pt** (negative but publishable finding). See §11.1.
-- **`text` baseline (no vision):** overall 0.6014 / cold 0.4082 / warm 0.7196.
-- **`clip_inject` + bigG:** overall 0.6048 / cold 0.3986 / warm 0.7310.
-  (Both finished 2026-07-29; now recorded in `RESULTS.md` rows #3–#4.)
+**Scope LOCKED 2026-08-03:**
+- **4 datasets:** Luxury Beauty, AMAZON_FASHION, Toys & Games (sub), **Prime Pantry**.
+  (Updated 2026-08-04: **All Beauty dropped** — small/density-outlier; **Prime Pantry reinstated** —
+  its old exclusion was under the vision thesis, now null; it's a clean crossover + best density fit.
+  See `DATASETS.md`, `FINDING_2.md`.)
+- **Single backbone = ViT-L/14.** ⛔ **bigG dropped entirely** (not even an appendix).
+- **Ladder per dataset:** **SASRec → text → clip_align → clip_inject** (all ViT-L, concat,
+  1 seed). ⛔ **fine-tune / RQ3 dropped** (parked).
+- **Fusion:** ⛔ **not a study.** We tried concat / mean / gating; **concat was best**, so
+  fusion is fixed = concat everywhere → a one-line note in the paper.
 
-**⚠️ First mechanism result is preliminary AND inverts the headline hypothesis.**
-`clip_inject − text` (bigG, 1 seed) = **+0.003 overall, −0.010 cold, +0.011 warm**. Vision
-here **helps warm** and **slightly hurts cold** — the opposite of RQ1's "vision helps cold
-items most." This is NOT yet a result to build on: (a) only 1 seed (no significance; the
-±1 pt cold/warm swings are within likely seed noise), and (b) **`clip_align` was never run**,
-so we can't tell "vision doesn't help cold" from "vision doesn't reach cold via this
-mechanism." See `RESULTS.md` → "RQ1 / mechanism contrast."
+**Done (4-dataset ladders complete, 1 seed each, generation Hit@1 fuzzy@0.90 — see `RESULTS.md`):**
+- **Luxury:** SASRec 0.507 / text 0.601 / clip_align 0.614 / clip_inject 0.598.
+- **All Beauty, AMAZON_FASHION, Toys (sub):** full SASRec→text→align→inject ladders done.
+- **Ranking metrics** (Hit@1/5, NDCG@5) implemented (`rank_candidates`, `score_titles`,
+  `infer.py --rank`, `eval_sasrec.py`) — the reported protocol; confirms crossover + vision-null.
 
-**Immediate next steps (not yet run), in priority order:**
-1. **`clip_align` + bigG** — the paper's original bottleneck mechanism and the MISSING middle
-   of the mechanism comparison (text vs clip_align vs clip_inject) = the RQ1 headline. Run
-   this before interpreting the cold/warm inversion above.
-2. **Multi-seed (≥10)** for text / clip_align / clip_inject on bigG — the current ±1 pt
-   cold/warm deltas need significance before any RQ1 claim.
-3. **RQ2 fusion** ablation (clip_inject: mean vs gating; concat already done).
-4. Start the paper draft once RQ1 (with clip_align + multi-seed) is in — and be ready for the
-   story to be "vision helps warm, not cold" if that holds up (still publishable as analysis).
+**Immediate next steps (in priority order):**
+1. **Write the ranking-metrics tables** (Hit@1/5, NDCG@5) per dataset into `RESULTS.md`.
+2. **Multi-seed (≥2, ideally 10)** for `SASRec`/`text` to put significance on the crossover.
+3. **Crossover figure + paper draft** around the CF↔LLM thesis (intro/related-work vs LLM-SRec).
 
-**Infra note (2026-07-30):** this checkout lives at `/users/kavach_d/CLAM-Rec-v2` and the
-recent `text`/`bigG` runs executed here directly on A6000 GPUs 0/2 — i.e. this box IS the
-remote GPU box (`dreal_gpu`), not the local 4080 described in older sections. Adjust paths
-accordingly (env `ALLM-Rec` at `~/anaconda3`, not `~/Dev/anaconda3`).
+**Infra note:** this checkout lives at `/users/kavach_d/CLAM-Rec-v2` and runs execute here
+directly on A6000 GPUs — i.e. this box IS the remote GPU box (`dreal_gpu`), not the local 4080
+described in older sections. Env `ALLM-Rec` at `~/anaconda3`.
 
-**Key gotchas** (details later in this doc / INFRASTRUCTURE.md): batch_size2≤4 &
-batch_size_infer≤16 on the A6000 or it OOMs; OPT loads via safetensors auto-conversion;
-run long jobs detached (`setsid nohup`), kill by PID; embeddings are regenerated on the
-LOCAL box (remote lacks open_clip + images) then rsynced.
+**Key gotchas** (details later / INFRASTRUCTURE.md): batch_size2≤6 & batch_size_infer≤16 on the
+A6000 or it OOMs; OPT loads via safetensors auto-conversion; run long jobs detached
+(`setsid nohup`), kill by PID; embeddings are regenerated where `open_clip` + images live,
+then rsynced.
 
 ---
 
@@ -147,8 +143,8 @@ the average of a large effect and no effect."
 | Backbone | SmolVLM2 (a VLM) | OPT-6.7B (text LLM) |
 | Visual input | raw images via VLM native pathway at inference | **pre-computed CLIP embeddings** |
 | Headline study | image **budget** `k` (how many images) | item/design **conditions** (when does it help) |
-| Contribution | a visual mechanism | an **empirical analysis** |
-| Datasets | 3 | Luxury Beauty (for now) |
+| Contribution | a visual mechanism | an **empirical analysis** (CF↔LLM crossover) |
+| Datasets | 3 | **4** (Luxury/All Beauty/Fashion/Toys sub) |
 
 Smol-Rec asks "how many images?"; we ask "for which items?". Different question,
 different backbone, different framing. That is what makes them two papers.
@@ -164,42 +160,29 @@ the analysis framing.
 
 ---
 
-## 3. The research questions (each = a results section)
+## 3. The research questions (current — see §0.0 for the pivot)
 
-- **RQ1 — Item coldness (the headline).** Does visual signal help more for **cold**
-  items (few training interactions) than **warm** ones?
-  *Hypothesis:* yes — cold items have weak collaborative-filtering signal, so
-  content/visual matters more. This is the money result.
-- **RQ2 — Fusion strategy.** Does *how* CLIP text+image are fused matter?
-  Compare **concat** vs **mean** vs a learned **gating** module.
-- **Mechanism contrast (cross-cutting).** The original CLAM-Rec used CLIP only as
-  a Stage-1 *alignment target*; the visual signal **never reaches the LLM at
-  inference** (see §4.3, the "bottleneck"). We compare that (`clip_align`) against
-  a variant that **injects** the CLIP embedding into the LLM at inference
-  (`clip_inject`). Does fixing the bottleneck help, and does it help more on cold
-  items?
+- **RQ1 — Popularity/coldness (the headline, REFRAMED).** How do the LLM and CF
+  compare as a function of item popularity? *Finding:* the LLM (`text`) beats CF
+  (`SASRec`) on **cold** items and loses on **warm** items — a monotonic **CF↔LLM
+  crossover** in all 4 datasets. LLMs add value exactly where CF is weak. This is the
+  money result (was previously framed as "does vision help cold items"; the vision
+  version is a null, so the crossback to CF-vs-LLM is the real, robust finding).
+- **Mechanism / vision (secondary).** The original CLAM-Rec used CLIP only as a
+  Stage-1 *alignment target*; the visual signal **never reaches the LLM at inference**
+  (see §4.3, the "bottleneck"). We compare that (`clip_align`) against a variant that
+  **injects** the CLIP embedding into the LLM (`clip_inject`). *Finding:* neither
+  shifts the crossover — **vision is a null / ruled-out confound**, whether or not it
+  reaches the LLM.
+- **Fusion (note only, not an RQ).** We tried **concat / mean / gating** for combining
+  CLIP text+image; **concat was best**, so fusion is fixed = concat throughout. Stated
+  as one line in the paper, not reported as a study.
 
-- **RQ3 — Domain fine-tuning of CLIP (added *after* baselines).** Does light-touch
-  **domain image-text contrastive** fine-tuning of CLIP (re-aligning each item's
-  own image ↔ title/description on the beauty domain) change *when* vision helps —
-  e.g. sharpen the cold-item gain, or extend benefit to warm items?
-  This is an **analysis axis, not the headline** (keeping the paper distinct from
-  Smol-Rec and inside the analysis framing). Constraints & caveats:
-  - Use **LoRA / light-touch**, small LR, early-stopping — 6,141 items is a real
-    **overfitting** risk; naive fine-tuning can make embeddings *worse*.
-  - **Signal = domain image-text contrastive**, deliberately NOT co-purchase /
-    rec-aware — rec-aware would inject collaborative signal into the visual space
-    and **blur the clean vision-vs-CF separation** the whole analysis depends on.
-  - **Fair comparison = fine-tuned-X vs zero-shot-X (same CLIP model)**, sliced
-    cold/warm. Note a fine-tuned *small* CLIP may still lose to *zero-shot bigG*.
-  - Fine-tuning only helps where CLIP actually reaches the LLM (**`clip_inject`**),
-    NOT `clip_align` (the bottleneck is unaffected by better inputs).
-  - **Sequencing:** the recommendation-impact eval must wait for the A6000. But
-    the fine-tuning itself + a **proxy sanity check** were done early (see §11).
-
-**Optional axes available but not committed** (the code/data support them):
-image-present vs image-missing items (now possible because our image coverage is a
-correct 90%), and user-sparsity (short vs long history).
+⛔ **DROPPED 2026-08-03 (do not run; parked in `RESULTS.md`):**
+- **RQ2 — Fusion study** — collapsed to the one-line note above.
+- **RQ3 — CLIP domain fine-tuning** — the "better retrieval, worse rec" negative is
+  parked; no RQ depends on it.
+- **bigG backbone** and **Prime Pantry dataset** — both dropped from scope.
 
 ---
 
@@ -255,12 +238,14 @@ analysis**, NOT as the paper's headline mechanism — because "inject visual
 embedding as a soft token into the LLM" is close to what Smol-Rec/I-LLMRec do, and
 we must not make that our central claim. The headline is the **analysis** (RQ1/RQ2).
 
-### 4.5 The fusion strategies (RQ2)
-- **concat** — `[text ‖ image]`, 2560-D (each half L2-normalized). Default.
-- **mean** — `(text + image)/2`, L2-normalized, 1280-D. Falls back to text if the
-  item has no image.
+### 4.5 The fusion strategies (tried; concat won → fixed = concat, NOT an RQ)
+We implemented three ways to fuse CLIP text+image and compared them; **plain concat was
+best**, so all reported runs use concat. The other two remain in the repo but unused. In
+the paper this is a single sentence, not a study (RQ2 dropped 2026-08-03).
+- **concat** — `[text ‖ image]` (each half L2-normalized). **Default / used everywhere.**
+- **mean** — `(text + image)/2`, L2-normalized. Falls back to text if no image.
 - **gating** — a small learned MLP predicts a per-item gate `g ∈ [0,1]`; output =
-  L2(`g·text + (1-g)·image`), 1280-D. Forces `g=1` when the image is missing.
+  L2(`g·text + (1-g)·image`). Forces `g=1` when the image is missing.
 
 ---
 
@@ -430,23 +415,28 @@ inference seeds each, then prints the sliced result tables with significance.
 | Model: 3 variants + fusion | ✅ (Stage 1 + wiring validated on 16GB) |
 | Full pipeline seam (train→infer→sliced report) | ✅ validated end-to-end with tiny LLM |
 | Env fix: OPT `.bin` → safetensors (CVE block) | ✅ (would have crashed A6000 run) |
-| RQ3 CLIP fine-tuning + proxy analysis | ✅ done (§11) |
-| clip_variant selection (bigG/vitl14_zeroshot/vitl14_ft) | ✅ config + drivers, no collisions |
-| Deployed + validated on dreal_gpu (A6000, GPU 2) | ✅ SSH, clone, rsync, train/infer work |
-| **RQ3 recommendation result (ViT-L, 1 seed)** | ✅ DONE — fine-tuning HURT rec ~3pt (§11.1); see RESULTS.md |
-| **RQ1/mechanism (bigG): `text` + `clip_inject`** | ✅ seed 0 done (§0.0, RESULTS.md #3–#4). `clip_align` STILL MISSING |
-| **RQ1/mechanism (bigG): `clip_align`** | ⏳ **NOT run — the missing middle of the contrast** |
-| **RQ2 fusion (bigG): mean / gating** | ⏳ NOT run (concat done via clip_inject #4) |
-| Multi-seed significance (≥10 seeds) | ⏳ currently 1 seed per model |
+| Deployed + validated on dreal_gpu (A6000) | ✅ SSH, clone, rsync, train/infer work |
+| **ViT-L ladder (SASRec→text→align→inject) — Luxury** | ✅ full ladder, seed 0 |
+| **ViT-L ladder — All Beauty / AMAZON_FASHION / Toys (sub)** | ✅ full ladders, seed 0 |
+| **Ranking metrics (Hit@1/5, NDCG@5) implemented** | ✅ `rank_candidates`/`--rank`/`eval_sasrec.py` |
+| **CF↔LLM crossover analysis + figure** | ✅ `analysis_crossover.py`, `figures/crossover.*` |
+| Ranking-metrics tables written into RESULTS.md | ⏳ pending |
+| Multi-seed significance (≥2–10 seeds) | ⏳ currently 1 seed per model |
 | Paper writing | ⏳ not started |
+| ⛔ RQ3 fine-tuning / bigG / RQ2 fusion / Prime Pantry | dropped (parked, §0.0 + §11) |
 
-**Immediate next action when compute is available:** run `scripts/run_all.sh`,
-then read the report tables and confirm/adjust the RQ hypotheses. Then write the
-paper (new title, rewritten intro/related-work per §2, results per §3).
+**Immediate next action:** write the ranking-metrics tables into `RESULTS.md`, add ≥2
+seeds for the `SASRec`/`text` crossover cells, then draft the paper around the CF↔LLM
+crossover thesis (intro/related-work positioned vs LLM-SRec and Smol-Rec).
 
 ---
 
-## 11. RQ3 fine-tuning — done early on the 16GB box (results)
+## 11. ⛔ PARKED — RQ3 CLIP fine-tuning (DROPPED from paper 2026-08-03)
+
+> **Not in the paper.** CLIP fine-tuning was dropped when the thesis pivoted to the
+> CF↔LLM crossover. This whole section (§11, §11.1, §11.2) is retained as history — the
+> "better retrieval, worse recommendation" negative is a real finding but no RQ depends
+> on it. Do not schedule fine-tuning runs.
 
 The CLIP fine-tuning and a proxy sanity-check were completed on the local RTX 4080
 while waiting for the cluster (the recommendation-impact eval still needs the A6000).

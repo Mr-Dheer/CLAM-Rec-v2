@@ -14,3 +14,6 @@ assets/
 
 # LoRA weights transferred via rsync, not git
 **/lora_best/adapter_model.safetensors
+
+# shared candidate pools — regenerable via scripts/make_candidates.py (deterministic)
+data/candidates/

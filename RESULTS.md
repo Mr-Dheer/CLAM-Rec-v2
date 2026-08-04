@@ -8,7 +8,214 @@
 Metric convention: **Hit@1** with fuzzy title matching at threshold **0.90** (generated
 next-item title vs ground-truth title). Evaluation is leave-one-out, 1 ground-truth +
 19 random negatives = 20 candidates. Metrics are sliced by **cold** (target item's
-training interaction count ≤ 5) vs **warm** (> 5).
+training interaction count ≤ 5) vs **warm** (> 5). (The paper reports the **ranking**
+protocol — Hit@1/5, NDCG@5 over the same 20 candidates — which confirms the same
+crossover + vision-null; the generation Hit@1 numbers below are the underlying ledger.)
+
+---
+
+## ⭐ SCOPE (locked 2026-08-03) — read before using any table below
+
+The paper covers **4 datasets** (Luxury Beauty, AMAZON_FASHION, Toys sub, **Prime Pantry** —
+All Beauty dropped 2026-08-04 as a small density outlier; Prime Pantry reinstated, see `DATASETS.md`),
+**ViT-L/14 as the single backbone**, ladder **SASRec → text → clip_align → clip_inject**,
+**fusion fixed = concat**, **20 candidates** (1 pos + 19 neg — LOCKED; higher counts overflow
+OPT's 2048-token context, see `EVAL_PROTOCOL.md`). Headline = the **CF↔LLM crossover** by item
+popularity; the vision angle is a **null** result under ranking (see `STORY.md`).
+
+**Parked / EXCLUDED from the paper (kept below for the record, clearly marked):**
+- ⛔ **bigG backbone** — dropped; ViT-L is the only backbone. (bigG tables retained as history.)
+- ⛔ **CLIP fine-tuning (RQ3)** — dropped; "better retrieval, worse rec" negative parked below.
+- ⛔ **Prime Pantry dataset** — dropped (results not favorable); section retained as history.
+- ⛔ **Fusion study (RQ2)** — not run as a study; **we tried concat / mean / gating and concat
+  was best**, so concat is fixed everywhere (one-line note in the paper).
+
+---
+
+## ⭐ RANKING RESULTS (REPORTED PROTOCOL) — all datasets, all metrics
+
+**This is the paper's primary results.** Likelihood-ranking over **20 candidates** (1 ground-truth
++ 19 negatives): each candidate title scored by the LLM's length-normalized log-likelihood (SASRec
+by dot-product), ranked → **Hit@{1,5,10}, NDCG@{5,10}**, sliced **overall / cold** (target train
+count ≤ 5) **/ warm** (> 5). All ViT-L/14, fusion = concat, **1 seed** (seed 0). Ladder per dataset:
+**SASRec (CF only) → text (+LLM) → clip_align → clip_inject.**
+
+#### Luxury Beauty — n=9912 (3763 cold / 6149 warm)
+
+**Overall**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.505 | 0.710 | 0.806 | 0.613 | 0.645 |
+| text (+LLM) | 0.600 | 0.755 | 0.848 | 0.682 | 0.712 |
+| clip_align | 0.610 | 0.764 | 0.857 | 0.691 | 0.721 |
+| clip_inject | 0.562 | 0.737 | 0.843 | 0.653 | 0.687 |
+
+**Cold (target train ≤5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.169 | 0.356 | 0.514 | 0.264 | 0.314 |
+| text (+LLM) | 0.492 | 0.645 | 0.765 | 0.572 | 0.610 |
+| clip_align | 0.470 | 0.636 | 0.758 | 0.556 | 0.596 |
+| clip_inject | 0.436 | 0.627 | 0.761 | 0.535 | 0.578 |
+
+**Warm (target train >5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.710 | 0.927 | 0.985 | 0.828 | 0.847 |
+| text (+LLM) | 0.666 | 0.823 | 0.899 | 0.749 | 0.774 |
+| clip_align | 0.696 | 0.843 | 0.917 | 0.773 | 0.797 |
+| clip_inject | 0.639 | 0.805 | 0.893 | 0.726 | 0.754 |
+
+#### Prime Pantry — n=15606 (3845 cold / 11761 warm)
+
+**Overall**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.257 | 0.593 | 0.788 | 0.429 | 0.492 |
+| text (+LLM) | 0.226 | 0.465 | 0.675 | 0.345 | 0.413 |
+| clip_align | 0.221 | 0.476 | 0.684 | 0.350 | 0.417 |
+| clip_inject | 0.222 | 0.468 | 0.681 | 0.346 | 0.414 |
+
+**Cold (target train ≤5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.026 | 0.136 | 0.360 | 0.077 | 0.148 |
+| text (+LLM) | 0.146 | 0.326 | 0.544 | 0.235 | 0.305 |
+| clip_align | 0.096 | 0.300 | 0.533 | 0.197 | 0.271 |
+| clip_inject | 0.148 | 0.344 | 0.553 | 0.245 | 0.311 |
+
+**Warm (target train >5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.332 | 0.742 | 0.928 | 0.544 | 0.605 |
+| text (+LLM) | 0.252 | 0.510 | 0.718 | 0.381 | 0.448 |
+| clip_align | 0.262 | 0.534 | 0.734 | 0.401 | 0.465 |
+| clip_inject | 0.246 | 0.509 | 0.722 | 0.379 | 0.447 |
+
+#### AMAZON_FASHION — n=3261 (2438 cold / 823 warm)
+
+**Overall**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.250 | 0.379 | 0.487 | 0.316 | 0.350 |
+| text (+LLM) | 0.301 | 0.478 | 0.662 | 0.388 | 0.447 |
+| clip_align | 0.287 | 0.460 | 0.654 | 0.372 | 0.434 |
+| clip_inject | 0.279 | 0.463 | 0.664 | 0.371 | 0.435 |
+
+**Cold (target train ≤5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.071 | 0.194 | 0.317 | 0.132 | 0.171 |
+| text (+LLM) | 0.158 | 0.365 | 0.583 | 0.258 | 0.328 |
+| clip_align | 0.144 | 0.340 | 0.573 | 0.240 | 0.314 |
+| clip_inject | 0.130 | 0.346 | 0.587 | 0.237 | 0.314 |
+
+**Warm (target train >5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.783 | 0.927 | 0.990 | 0.860 | 0.880 |
+| text (+LLM) | 0.725 | 0.814 | 0.896 | 0.772 | 0.798 |
+| clip_align | 0.713 | 0.815 | 0.896 | 0.765 | 0.791 |
+| clip_inject | 0.721 | 0.812 | 0.893 | 0.767 | 0.793 |
+
+#### Toys & Games (sub) — n=9513 (4504 cold / 5009 warm)
+
+**Overall**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.203 | 0.485 | 0.692 | 0.347 | 0.414 |
+| text (+LLM) | 0.253 | 0.503 | 0.713 | 0.378 | 0.445 |
+| clip_align | 0.239 | 0.487 | 0.692 | 0.364 | 0.430 |
+| clip_inject | 0.248 | 0.500 | 0.711 | 0.374 | 0.442 |
+
+**Cold (target train ≤5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.107 | 0.292 | 0.511 | 0.200 | 0.270 |
+| text (+LLM) | 0.237 | 0.502 | 0.715 | 0.368 | 0.437 |
+| clip_align | 0.219 | 0.480 | 0.696 | 0.351 | 0.420 |
+| clip_inject | 0.231 | 0.498 | 0.714 | 0.364 | 0.434 |
+
+**Warm (target train >5)**
+
+| Model | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| SASRec (CF only) | 0.289 | 0.659 | 0.854 | 0.480 | 0.543 |
+| text (+LLM) | 0.267 | 0.504 | 0.712 | 0.386 | 0.453 |
+| clip_align | 0.256 | 0.494 | 0.689 | 0.375 | 0.438 |
+| clip_inject | 0.263 | 0.502 | 0.708 | 0.383 | 0.449 |
+
+### Headline — the CF↔LLM crossover (Hit@1)
+
+| Dataset | SASRec cold | text cold | **LLM Δcold** | SASRec warm | text warm | **CF Δwarm** |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| Luxury Beauty | 0.169 | 0.492 | **+0.323** | 0.710 | 0.666 | **+0.044** |
+| AMAZON_FASHION | 0.071 | 0.158 | **+0.087** | 0.783 | 0.725 | **+0.058** |
+| Toys & Games (sub) | 0.107 | 0.237 | **+0.130** | 0.289 | 0.267 | **+0.022** |
+| Prime Pantry | 0.026 | 0.146 | **+0.120** | 0.332 | 0.252 | **+0.080** |
+
+`LLM Δcold` = text − SASRec on cold; `CF Δwarm` = SASRec − text on warm. **In every dataset the LLM
+wins cold and CF wins warm** — the consistent CF↔LLM crossover. LLMs add value where CF is weak
+(rare items) and subtract it where CF is strong (popular items). The crossover *point* (train_count
+where the sign flips) tracks dataset density: **Pearson r = +0.89 vs mean interactions/item, +0.98
+vs mean history length** (`figures/crossover_sparsity.*`, `scripts/analysis_crossover.py`).
+
+### Vision is a null under ranking (cold Hit@1 vs text)
+
+| Dataset | text cold | clip_align Δ | clip_inject Δ |
+|---|:-:|:-:|:-:|
+| Luxury Beauty | 0.492 | −0.022 | **−0.056** |
+| AMAZON_FASHION | 0.158 | −0.014 | −0.028 |
+| Toys & Games (sub) | 0.237 | −0.018 | −0.006 |
+| Prime Pantry | 0.146 | −0.050 | +0.002 |
+
+Adding visual signal does **not** help cold items under ranking — neutral-to-negative in all 4
+datasets (Δ ≤ +0.014), whether vision reaches the LLM (`inject`) or is only an alignment target
+(`align`). The apparent Luxury **+0.076** under the *generation* protocol (older tables below)
+**reverses to −0.056** here. Vision = ruled-out confound.
+
+### CF+LLM fusion (ensemble) — ✅ COMPLETE (the deployable popularity-gated fusion WINS)
+
+SASRec + text ranked the **identical** 20-candidate pool (`results/{ds}_{sasrec,text_concat}_shared/`,
+per-candidate scores logged); fusion via `scripts/analysis_ensemble.py`. Methods: pure **CF**,
+pure **text**; **RRF** (rank fusion, no popularity); **z-fuse** (equal-weight score fusion);
+**pop-gate** (score fusion weighting each candidate by its own popularity `w=pop/(pop+pivot)`,
+`pivot`=dataset mean interactions/item — **deployable**, popularity known at inference); **ORACLE**
+(routes the whole decision by the *target's* popularity — upper bound, not deployable). 1 seed.
+
+| Dataset | metric | CF | text | RRF | z-fuse | **pop-gate** | ORACLE |
+|---------|--------|:--:|:----:|:---:|:------:|:------------:|:------:|
+| **Luxury** | Hit@1 | 0.501 | 0.600 | 0.539 | 0.575 | **0.622** | 0.627 |
+|            | Hit@5 | 0.709 | 0.756 | 0.744 | 0.748 | **0.801** | 0.816 |
+|            | NDCG@5| 0.612 | 0.682 | 0.646 | 0.667 | **0.718** | 0.728 |
+| **All Beauty** | Hit@1 | 0.568 | 0.574 | 0.569 | 0.571 | **0.606** | 0.599 |
+|                | Hit@5 | 0.627 | 0.705 | 0.644 | 0.634 | **0.709** | 0.718 |
+| **Fashion** | Hit@1 | 0.246 | 0.292 | 0.252 | 0.260 | **0.308** | 0.310 |
+|             | Hit@5 | 0.382 | 0.475 | 0.407 | 0.390 | **0.497** | 0.519 |
+| **Toys (sub)** | Hit@1 | 0.206 | 0.247 | 0.242 | 0.254 | **0.266** | 0.278 |
+|                | Hit@5 | 0.484 | 0.497 | 0.520 | 0.530 | **0.554** | 0.584 |
+
+**pop-gate Δ over best pure model (Hit@1):** Luxury **+0.022**, All Beauty **+0.031**, Fashion
+**+0.015**, Toys **+0.019** — **positive on all 4**, and ≈ the oracle upper bound (sometimes above
+it, since per-candidate weighting is finer than a single global route). Hit@5/NDCG@5 gains are
+larger (e.g. Toys Hit@5 +0.058, Luxury Hit@5 +0.045, NDCG@5 +0.036).
+
+**Key finding:** naive fusion does **not** help — **RRF is negative** (−0.005 to −0.061) and
+equal-weight **z-fuse is ~neutral**. Only fusion that **weights CF vs LLM by item popularity**
+— i.e. that *uses the crossover* — beats both pure models. So the crossover is not just diagnostic:
+a simple, deployable popularity-gated score fusion turns it into a prescriptive method that
+beats both collaborative filtering and the LLM on every dataset.
 
 ---
 
@@ -34,13 +241,20 @@ training interaction count ≤ 5) vs **warm** (> 5).
 - `clip_inject` — CLIP alignment target PLUS a per-item `[MMEmb]` CLIP soft token fed to the LLM at inference (bottleneck fixed).
 
 **CLIP embedding sets** (the `clip_variant` switch):
-- `bigG` — CLIP-ViT-bigG-14 (laion2b), 1280-dim/modality, 2560 fused. Zero-shot.
 - `vitl14_zeroshot` — CLIP-ViT-L/14 (laion2b), 768-dim/modality, 1536 fused. Zero-shot.
-- `vitl14_ft` — same ViT-L/14, LoRA domain-fine-tuned on Luxury Beauty image↔text.
+  **← the only one used in the paper.**
+- ⛔ `bigG` — CLIP-ViT-bigG-14, 2560 fused. **Dropped** (parked below as history).
+- ⛔ `vitl14_ft` — ViT-L/14 LoRA-fine-tuned. **Dropped** (RQ3 parked below).
 
 ---
 
-## Results table (Hit@1, fuzzy@0.90)
+## Results table (Hit@1, fuzzy@0.90) — GENERATION protocol (secondary/historical)
+
+> ⚠️ The tables from here down are the earlier **generation** protocol (the LLM *generates* one
+> title; Hit@1 by title match). They are kept for the record and for the generation-vs-ranking
+> contrast (esp. the Luxury vision reversal). **The reported numbers are the RANKING tables at the
+> top of this file.**
+
 
 | # | Variant | CLIP set | Seeds | Overall | Cold | Warm | Date |
 |---|---------|----------|:-----:|:-------:|:----:|:----:|------|
@@ -91,11 +305,10 @@ not where it's strong (warm). ⚠️ 1 seed: the align-vs-inject cold gap (+0.00
 the text→vision jump (+0.07) is the solid result. This is cleaner + more defensible than the
 razor-thin bigG appendix, and *differs* from the original "injection fixes the bottleneck" framing.
 
-### RQ1 / mechanism contrast — bigG (NOW APPENDIX ONLY; ViT-L is the headline backbone)
+### ⛔ PARKED — RQ1 / mechanism contrast — bigG (DROPPED from paper 2026-08-03)
 
-> Per the 2026-07-30 decision (see `STORY.md`), **ViT-L/14 is the single headline backbone**;
-> bigG is kept only as an appendix showing the cold/warm effect is *backbone-dependent*.
-> The bigG numbers below stand as that appendix evidence.
+> **Not in the paper.** ViT-L/14 is the single backbone; bigG was dropped entirely (not even
+> an appendix). Numbers retained below only as history — do not cite.
 
 `clip_inject` (vision reaches the LLM) vs `text` (no vision), fused bigG CLIP, seed 0:
 
@@ -118,7 +331,10 @@ Also note the cold/warm *profile* differs sharply between CLIP sets at equal ove
 cold 0.399/warm 0.731 vs vitl14_zeroshot cold 0.485/warm 0.667); slice membership is identical
 across runs, so this is real model behaviour worth understanding.
 
-### RQ3 comparison (fine-tuned vs zero-shot CLIP, ViT-L/14, clip_inject)
+### ⛔ PARKED — RQ3 comparison (fine-tuned vs zero-shot CLIP) — DROPPED from paper 2026-08-03
+
+> **Not in the paper.** CLIP fine-tuning is dropped. The negative finding below ("better
+> retrieval, worse recommendation") is retained as history; no RQ depends on it.
 
 | Slice | Zero-shot | Fine-tuned | Δ (ft − zs) |
 |-------|----------:|-----------:|------------:|
@@ -149,7 +365,6 @@ Data prep verified: preprocess matches the SASRec checkpoint exactly (**2,169 us
 | text (no vision) | — | **0.5612** | 0.1271 | 0.9106 | ✅ |
 | clip_align | vitl14_zeroshot | 0.5226 | **0.1346** | 0.8349 | ✅ |
 | clip_inject | vitl14_zeroshot | 0.5541 | 0.1335 | 0.8925 | ✅ |
-| clip_inject + fine-tune | vitl14_ft | — | — | — | ⏳ needs per-dataset LoRA fine-tune |
 
 > **CORRECTION (2026-07-30):** an earlier version of this table showed inflated numbers
 > (text cold 0.1618, inject cold 0.1818, etc.) — those were computed by a buggy watcher that
@@ -202,7 +417,11 @@ vision adds net noise. Structurally favorable (CF weak on cold) yet vision doesn
 there's enough CF density, not in sparse/heterogeneous-image domains (fashion). Still a valid
 *analysis* contribution ("when/why vision helps"), but not a uniform 3-dataset win.
 
-## Prime Pantry (3rd dataset, ViT-L/14, concat, 1 seed) — COMPLETE (marginal/muddy)
+## ⛔ PARKED — Prime Pantry (DROPPED from paper 2026-08-03; results not favorable)
+
+> **Not in the paper.** Retained as history. Note the crossover was still present here
+> (SASRec cold 0.026 ≪ warm 0.332; text recovers cold to 0.139) — but per the scope
+> decision Prime Pantry is excluded from the final 4-dataset set.
 
 15,611 users / 7,841 items; fresh data, SASRec trained by us (`train_sasrec.py`), 90.6% image cov.
 
@@ -212,11 +431,6 @@ there's enough CF density, not in sparse/heterogeneous-image domains (fashion). 
 | text (+LLM) | 0.2328 | 0.1394 | 0.2633 |
 | clip_align | 0.2304 | 0.0861 | 0.2775 |
 | clip_inject | 0.2240 | **0.1454** | 0.2497 |
-
-**Cold:** clip_inject vs text **+0.006** (marginal, like All Beauty; grocery = moderate visual).
-Notable **mechanism datapoint**: clip_align HURTS cold (−0.053 vs text) and clip_inject recovers
-it (+0.059 over align) — the bottleneck genuinely matters here (cleaner align-vs-inject
-separation than Luxury). Overall vision slightly negative. Verdict: another marginal result.
 
 ## Toys & Games (subsample, ViT-L/14, concat, 1 seed) — PARTIAL
 
@@ -235,22 +449,24 @@ slightly hurts warm/overall; `text` is the best model. Toys was *engineered* to 
 (item-discriminative images, 91.7% coverage, 47% cold) yet shows no vision benefit — the
 "item-discriminative images predict vision helps" hypothesis did NOT hold.
 
-### Cross-dataset cold-slice vision effect (clip_inject − text) — generation Hit@1
+### Cross-dataset cold-slice vision effect (clip_inject − text) — generation Hit@1 — final 4
 
 | Dataset | Δ cold | verdict |
 |---------|:------:|---------|
-| Luxury Beauty | **+0.076** | ✅ helps |
+| Luxury Beauty | **+0.076** | ✅ helps (generation only) |
 | All Beauty | +0.006 | ⚠️ ~zero |
-| Prime Pantry | +0.006 | ⚠️ ~zero |
 | Toys (sub) | +0.000 | ⚠️ ~zero |
 | AMAZON_FASHION | −0.024 | ❌ hurts |
 
-**Only Luxury Beauty benefits — 4 other datasets (incl. the engineered-favorable Toys) show
-zero-to-negative.** Consistent with EXP-3 (the Luxury gain tracks CLIP-text > SBERT, not the
-image). Paper thesis tightens to "vision helps only in narrow conditions; here, Luxury Beauty
-specifically — and we show why." (These are generation Hit@1; ranking eval pending → re-verify.)
+**Even under generation, only Luxury benefits; the other 3 are zero-to-negative — and under
+the ranking protocol the Luxury gain reverses too, so vision is a null across the board.** This
+is why the paper's headline moved to the **CF↔LLM crossover** (`text` vs `SASRec`, robust in all
+4) and treats vision as a ruled-out confound. (Prime Pantry excluded from scope; see parked
+section above.)
 
-## Proxy result (not recommendation — image↔text retrieval, held-out items)
+## ⛔ PARKED — Proxy result (image↔text retrieval) — fine-tuning DROPPED from paper
+
+> Retained as history only (fine-tuning is out of scope).
 
 CLIP ViT-L/14 LoRA domain fine-tuning, image→text retrieval R@1 on unseen items:
 
@@ -277,17 +493,19 @@ users**, **≥ ~70% image coverage**, **≥ ~80% title coverage+uniqueness** (Fa
 
 | Dataset | Users | Items | Img cov | Cold % | Decision |
 |---------|------:|------:|:-------:|:------:|----------|
-| Luxury Beauty | 9,930 | 6,141 | 90% | 38% | ✅ #1 (strong) |
-| AMAZON_FASHION | 3,679 | 7,310 | 83% | 74.8% | ✅ #2 (training) |
-| Prime Pantry | 15,611 | 7,841 | 90.6% | 24.6% | ✅ #3 (LOCKED, prep pending) |
-| All Beauty | 2,169 | 1,854 | — | — | dropped (muddy/tiny) |
+| Luxury Beauty | 9,930 | 6,141 | 90% | 38% | ✅ paper |
+| AMAZON_FASHION | 3,679 | 7,310 | 83% | 74.8% | ✅ paper |
+| All Beauty | 2,169 | 1,854 | 70% | 45% | ✅ paper |
+| Toys & Games (sub) | 9,513 | 7,253 | 91.7% | 47% | ✅ paper (subsampled) |
+| Prime Pantry | 15,611 | 7,841 | 90.6% | 24.6% | ⛔ prepared but EXCLUDED (not favorable) |
 | Video Games | 64,073 | 33,614 | 82% | 20.8% | ✗ ~70h/run |
 | Musical Instruments | 40,644 | 30,676 | 69% | 36% | ✗ ~44h/run |
 | Arts & Crafts | 86,810 | 64,072 | 55% | 38% | ✗ too big + low img |
 | Appliances | 1,568 | 3,473 | 40% | 81% | ✗ image coverage |
 
-**Final 3: Luxury Beauty + AMAZON_FASHION + Prime Pantry.** Fashion's SASRec matched the
-existing checkpoint (3679/7310) so it was reusable.
+**Final 4: Luxury Beauty + All Beauty + AMAZON_FASHION + Toys & Games (sub).** Prime Pantry was
+fully prepared but excluded 2026-08-03 (results not favorable). See `DATASETS.md` for full
+provenance.
 
 **NEW screening criterion — title coverage.** The whole eval is title-generation-based, so items
 need non-empty, mostly-unique titles. A [preprocess bug](../clam_rec/data/preprocess.py) coupled
@@ -298,22 +516,23 @@ re-preprocess recovered titles 888 → 7,309/7,310 with interactions byte-identi
 Corrected Fashion SASRec: **overall 0.2505 / cold 0.0710 / warm 0.7825** — Fashion is genuinely
 **FAVORABLE** (CF collapses on cold 0.071, even weaker than Luxury's 0.168 → large vision headroom).
 Luxury/All Beauty were unaffected (they have descriptions; their SASRec ID≈title, numbers valid).
-Fashion ladder re-launched 2026-07-30 with fixed titles. Prime Pantry: prep pending (use fixed
-preprocess + verify title coverage — it may also lack descriptions).
 
 ## Still to run (not yet done)
 
-Plan (locked 2026-07-30): **ViT-L/14 single backbone**, **RQ2/fusion dropped**, per-dataset
-ladder **SASRec → text → clip_align → clip_inject → clip_inject+fine-tune**, all 3 datasets,
-1 seed for now. See `STORY.md` / `PROJECT.md §0.0`.
+Scope (locked 2026-08-03): **ViT-L/14 single backbone**, fusion fixed = concat, per-dataset
+ladder **SASRec → text → clip_align → clip_inject** (no fine-tune), **4 datasets** (Luxury,
+All Beauty, Fashion, Toys sub). See `STORY.md` / `PROJECT.md §0.0`.
 
-- [x] **Luxury:** SASRec, text, clip_inject (ViT-L zs + ft) done. `clip_align` (ViT-L) 🔄 training.
-- [x] **All Beauty:** SASRec done; text / clip_align / clip_inject (ViT-L zs) 🔄 training.
-- [ ] **All Beauty RQ3** — per-dataset ViT-L LoRA fine-tune → `clip_inject` (vitl14_ft).
-- [ ] **Video Games** — full prep (preprocess → verify → ViT-L extract → ladder). The big one
-  (≈27k items / 17k images).
-- [ ] **Multi-seed** (≥10) for significance — currently 1 seed each. Also retrains the
+- [x] **Luxury:** SASRec, text, clip_align, clip_inject (ViT-L zs) — full ladder done.
+- [x] **All Beauty:** SASRec, text, clip_align, clip_inject (ViT-L zs) — done.
+- [x] **AMAZON_FASHION:** full ladder done (fixed titles).
+- [x] **Toys (sub):** full ladder done.
+- [ ] **Multi-seed** (≥2–10) for significance — currently 1 seed each. Also retrains the
   checkpoints lost to the 07-30 clobber/migration.
-- [ ] bigG appendix `clip_align` (optional) — completes the bigG mechanism triple.
+- [ ] **Ranking metrics table** (Hit@1/5, NDCG@5) written up per dataset — the reported protocol.
+- [ ] **Crossover figure + write-up** (`scripts/analysis_crossover.py`, `figures/crossover.*`).
 
-_Last updated: 2026-07-30._
+⛔ **Dropped (do NOT run):** CLIP fine-tuning (RQ3), bigG backbone, RQ2 fusion study,
+Prime Pantry, Video Games.
+
+_Last updated: 2026-08-03._

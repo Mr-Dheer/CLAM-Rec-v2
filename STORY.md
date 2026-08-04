@@ -1,7 +1,8 @@
 # CLAM-Rec v2 — Method Levers & Paper Story
 
-> Two parts. **Part 1** explains, plainly, what the three experimental levers
-> (`clip_align`, `clip_inject`, CLIP fine-tuning) actually *do*. **Part 2** explains
+> Two parts. **Part 1** explains, plainly, what the experimental levers
+> (`clip_align`, `clip_inject`; fine-tuning is dropped, kept only for context) actually
+> *do*. **Part 2** explains
 > how we position the paper and what the story is. Read `PROJECT.md` for the full
 > design; this doc is the conceptual + narrative companion.
 
@@ -12,7 +13,7 @@ Last updated: 2026-08-03. Backbone: **ViT-L/14 single backbone**.
 ## ⭐ REFRAMED THESIS (2026-08-03) — the story pivoted, for the better
 
 **The vision angle is a null result** (see `RESULTS.md`): under the *ranking* eval (Hit@1/5,
-NDCG@5), `clip_inject`/`clip_align` are neutral-to-negative on cold items across ALL 5 datasets;
+NDCG@5), `clip_inject`/`clip_align` are neutral-to-negative on cold items across ALL 4 datasets;
 the apparent +0.076 on Luxury was **generation-protocol-specific** and reverses under ranking.
 
 **But the data revealed a much stronger, universal pattern — a CF↔LLM crossover by item
@@ -21,18 +22,34 @@ popularity:**
   Hit@1); at train_count=0, SASRec=0.000 (never-seen item → zero embedding) while the LLM works.
 - On **warm/popular items** CF beats the LLM in every dataset (−0.02 to −0.30).
 - `text − SASRec` **decays monotonically and crosses zero** at a dataset-dependent point
-  (All Beauty ~2 interactions, Fashion ~4, Luxury/Toys ~15, Prime Pantry ~30). No exceptions.
+  (Fashion ~2, Luxury ~9, Toys ~13, Prime Pantry ~20 interactions). No exceptions.
 - **Vision does not shift the crossover** (`inject − text` tiny/negative in every bin).
 
 **New thesis:** *"When do LLMs help sequential recommendation? LLMs add value precisely where
 collaborative filtering is weak — cold/rare items — and degrade it where CF is strong (popular
-items), a consistent cold/warm crossover across 5 datasets. Adding visual (CLIP) signal does not
+items), a consistent cold/warm crossover across 4 datasets. Adding visual (CLIP) signal does not
 shift this crossover."* This directly answers the LLM-SRec question ("do LLMs understand
 sequential recommendation?"), absorbs the vision negative as a ruled-out confound, and is robust
-(5 datasets, monotonic, holds on Hit@1/5/NDCG@5). Evidence: `scripts/analysis_crossover.py`.
+(4 datasets, monotonic, holds on Hit@1/5/NDCG@5). Evidence: `scripts/analysis_crossover.py`.
+
+**Scope locked (updated 2026-08-04):** 4 datasets = **Luxury Beauty, AMAZON_FASHION, Toys (sub),
+Prime Pantry** (All Beauty dropped — small/density-outlier; Prime Pantry reinstated — clean crossover +
+best density fit; see `DATASETS.md`/`FINDING_2.md`); **ViT-L/14 single backbone** (bigG dropped);
+**no CLIP fine-tuning** (RQ3 dropped); **fusion fixed = concat** (we tried mean/gating, concat
+was best — reported as a one-line note, not a study). Ladder per dataset:
+**SASRec → text → clip_align → clip_inject.**
 
 Distinct from Smol-Rec (image-budget) AND from LLM-SRec (retrieval architecture): our contribution
 is the **empirical CF/LLM complementarity along the popularity axis + the vision null**.
+
+**Prescriptive kicker (2026-08-03): the crossover is exploitable.** A simple **popularity-gated
+score fusion** — weighting each candidate's CF vs LLM score by that candidate's own popularity
+(`w=pop/(pop+pivot)`; deployable, popularity known at inference) — **beats both pure CF and pure
+LLM on all 4 datasets** (+0.015 to +0.031 Hit@1, up to +0.058 Hit@5), essentially matching the
+oracle upper bound. Critically, **naive fusion fails**: rank fusion (RRF) is *negative* and
+equal-weight score fusion is neutral — only fusion that *uses the crossover* (popularity weighting)
+wins. So the paper goes from *descriptive* (there is a crossover) to *prescriptive* (here's how to
+exploit it). Evidence: `scripts/analysis_ensemble.py`, `RESULTS.md` → "CF+LLM fusion".
 
 Part 2 below (the vision-centric framing) is now SUPERSEDED by the above — kept for history.
 
@@ -49,8 +66,9 @@ prompts. The levers below only change **what the content embedding is** and **wh
 it reaches the LLM at inference**.
 
 For the CLIP variants the content embedding is the **fused CLIP** vector =
-combine(CLIP-text, CLIP-image). (How you combine them = *fusion*, the RQ2 axis:
-concat / mean / learned gating. Orthogonal to everything below.)
+combine(CLIP-text, CLIP-image). How you combine them = *fusion* (concat / mean /
+learned gating); we tried all three, **concat was best**, so fusion is **fixed = concat**
+throughout — a one-line note in the paper, not a study.
 
 ### 1. `clip_align` — the "bottleneck" (this *is* the original, rejected CLAM-Rec)
 - CLIP is used **only as a Stage-1 alignment target**: a small autoencoder pulls the
@@ -73,30 +91,27 @@ concat / mean / learned gating. Orthogonal to everything below.)
   vision must actually reach the model for "does vision help / how to fuse / does
   fine-tuning help" to be measurable.
 
-### 3. CLIP fine-tuning — a *preprocessing* lever (RQ3)
-- **Not** an inference variant. It's a step that produces *better CLIP embeddings*:
-  LoRA domain image↔text contrastive fine-tuning of ViT-L/14 on the dataset's own
-  item (image, title) pairs, split by item so held-out items measure generalization.
-- Those fine-tuned embeddings are then fed into the recommender **via `clip_inject`**
-  (they must reach the LLM to have any effect — on `clip_align` they'd be bottlenecked
-  and better inputs couldn't show up). RQ3 = `clip_inject`+zero-shot vs
-  `clip_inject`+fine-tuned, same variant/fusion, only the embeddings differ.
-- What it does empirically (Luxury Beauty, ViT-L): **improves retrieval**
-  (image→text R@1 0.53 → 0.63) but **hurts recommendation** (−3 pts). "Better
-  embeddings, worse rec" — a cautionary negative result.
+### 3. CLIP fine-tuning — a *preprocessing* lever (⛔ DROPPED from the paper, 2026-08-03)
+- **Not in scope anymore.** It was a step that produced *better CLIP embeddings*: LoRA
+  domain image↔text contrastive fine-tuning of ViT-L/14 on the dataset's own item
+  (image, title) pairs. Empirically (Luxury Beauty) it **improved retrieval** (image→text
+  R@1 0.53 → 0.63) but **hurt recommendation** (−3 pts under generation Hit@1).
+- **Why dropped:** the paper's thesis is now the CF↔LLM crossover; fine-tuning is an
+  orthogonal vision sub-study, and the vision angle is already a null result. The
+  artifacts/numbers are preserved in `RESULTS.md` (parked) but no RQ depends on them.
 
 ### Summary
-| Lever | What changes | Reaches LLM at inference? | Supports which RQ |
+| Lever | What changes | Reaches LLM at inference? | Role |
 |---|---|---|---|
 | `clip_align` | CLIP as alignment target only | ❌ (bottleneck) | control for mechanism contrast |
-| `clip_inject` | + `[MMEmb]` CLIP token in prompt | ✅ (direct) | **RQ1, RQ2, RQ3 all live here** |
-| CLIP fine-tuning | better CLIP embeddings (preprocessing) | ✅ via `clip_inject` | RQ3 |
+| `clip_inject` | + `[MMEmb]` CLIP token in prompt | ✅ (direct) | the vision workhorse (RQ1 vision test) |
+| ~~CLIP fine-tuning~~ | ~~better CLIP embeddings~~ | ~~✅ via `clip_inject`~~ | **dropped (parked in RESULTS.md)** |
 
-The three orthogonal axes of the whole instrument:
-- **Fusion (RQ2)** = how to combine *text + image*.
-- **Align vs inject (mechanism)** = whether the fused vector *reaches the LLM*.
-- **Coldness (RQ1)** = *for which items* it helps.
-- **Fine-tuning (RQ3)** = whether *domain-specializing* the embeddings helps.
+The axes of the instrument that remain in the paper:
+- **Popularity / coldness (headline)** = *for which items* CF vs the LLM wins (the crossover).
+- **Align vs inject (mechanism)** = whether the visual vector *reaches the LLM* (vision test).
+- **Fusion** = how to combine *text + image*; **fixed = concat** (mean/gating tried, concat
+  best) — a one-line note, not a study.
 
 ---
 
@@ -156,8 +171,8 @@ We use **ViT-L/14 everywhere** (headline + fine-tuning), because:
 - It's **fine-tunable**, so RQ3 sits on the *same* model — no "why two backbones?"
 - Absolute numbers are lower than bigG, but **for an analysis paper only the
   within-paper contrasts matter**, and those are all valid on ViT-L.
-- (bigG is being run to completion as an **appendix**: evidence that the cold/warm
-  pattern is backbone-dependent — i.e. *why* we chose ViT-L.)
+- **bigG is dropped entirely** (2026-08-03) — not even an appendix. ViT-L/14 is the
+  single backbone for every reported number.
 
 ### The story, in one paragraph
 > Adding visual signal to an LLM recommender yields a negligible *average* gain — the
@@ -166,37 +181,37 @@ We use **ViT-L/14 everywhere** (headline + fine-tuning), because:
 > on cold items** (weak collaborative signal) and **none on warm items** (strong
 > collaborative signal). Using a mechanism contrast (`align` vs `inject`) as an
 > instrument, we show this cold benefit is **conditional on the visual signal actually
-> reaching the LLM**, not merely being used as an alignment target. We further find
-> that **domain fine-tuning of CLIP improves image↔text retrieval yet *degrades*
-> recommendation** — a warning that representation quality ≠ recommendation utility.
+> reaching the LLM**, not merely being used as an alignment target.
 > Together: vision helps LLM recommenders exactly where collaborative filtering is
 > weak, and only through mechanisms and embeddings that preserve general semantics.
+
+> ⚠️ The paragraph above is the OLD vision-centric framing (kept for history). The
+> current headline is the **CF↔LLM crossover** (see the reframed thesis at the top of
+> this file); under the ranking protocol the vision result is a **null / ruled-out
+> confound**, not a cold-item win.
 
 ### The baseline ladder (decided 2026-07-30: fusion/RQ2 dropped, SASRec baseline added)
 Per dataset we report a single clean ladder, all ViT-L/14, fusion fixed = concat:
 
 **SASRec (CF only) → `text` (+LLM) → `clip_align` (+vision, bottlenecked) →
-`clip_inject` (+vision, injected) → `clip_inject`+fine-tune (RQ3).**
+`clip_inject` (+vision, injected).** (Fine-tune step dropped 2026-08-03.)
 
 The SASRec baseline (no LLM) anchors "how much do the LLM and vision add over plain
-CF." Its result makes the thesis concrete — Luxury Beauty, cold slice:
-`0.168 (CF) → 0.408 (+LLM) → 0.485 (+vision)`; on warm all three sit ~0.71–0.73.
-CF alone already nails warm items; it collapses on cold, and each layer recovers it.
+CF" — and it is what exposes the crossover: CF nails warm items and collapses on cold,
+the LLM does the reverse. Vision does not move the needle under the ranking protocol.
 
 ### How the levers map to the paper's RQs
-- **RQ1 — Coldness (headline):** `clip_inject` vs `text` (vs SASRec floor), sliced
-  cold/warm, 3 datasets.
-- **Mechanism (cross-cutting):** `clip_align` vs `clip_inject` — instrument showing
-  the cold benefit needs vision to reach the LLM.
-- **RQ3 — Fine-tuning:** `clip_inject` × {zero-shot, fine-tuned} — the "better
-  retrieval, worse rec" negative result.
-- ~~**RQ2 — Fusion**~~ — **dropped** 2026-07-30. `clip_inject` is always `concat`; the
-  `mean`/`gating` code paths remain in the repo but unused.
+- **RQ1 — Popularity/coldness (headline):** `SASRec` vs `text` sliced by item
+  interaction count → the CF↔LLM crossover, 4 datasets.
+- **Mechanism / vision (secondary):** `clip_align` vs `clip_inject` vs `text` — shows
+  vision does not shift the crossover (null, whether or not it reaches the LLM).
+- **Fusion (note only):** concat vs mean vs gating → concat best → fixed = concat.
+  Not a reported study.
+- ⛔ **Dropped 2026-08-03:** fine-tuning (RQ3), bigG backbone, Prime Pantry dataset.
+  All parked in `RESULTS.md`; none appear in the paper.
 
 ### Honest caveats / open items
-- **1 seed so far** — no significance yet. Cold/warm deltas need ≥2 seeds.
-- **`clip_align` on ViT-L not yet run** — the mechanism middle for the headline is
-  still missing (only bigG `clip_align` is running, for the appendix).
-- Cross-backbone reads share the same `text` baseline (valid) but aren't multi-seed.
-- New datasets (All Beauty, Video Games) still need CLIP extraction + per-dataset
-  fine-tune before their matrix can run.
+- **1 seed so far** on the generation numbers — the crossover is robust across 4
+  datasets and monotonic, but per-cell deltas need ≥2 seeds for significance.
+- The vision null and the crossover both hold under the **ranking** protocol
+  (Hit@1/5, NDCG@5) — the protocol the paper reports.

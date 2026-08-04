@@ -29,18 +29,30 @@ A candidate must clear **all** of these:
 
 ---
 
-## Final datasets
+## Final datasets — 4 (updated 2026-08-04: All Beauty out, Prime Pantry in)
 
-| Dataset | Users | Items | Img cov | Title cov | Cold % | SASRec cold/warm | Provenance | Vision Δcold |
-|---------|------:|------:|:-------:|:---------:|:------:|:----------------:|------------|:------------:|
-| Luxury Beauty | 9,930 | 6,141 | 90% | 96.5% | 38% | 0.168 / 0.714 | reused (Extension-Paper) | **+0.076** ✅ |
-| All Beauty | 2,169 | 1,854 | 70%* | 99.5% | 45% | 0.086 / 0.963 | reused SASRec + fresh preprocess | +0.006 ⚠️ |
-| AMAZON_FASHION | 3,679 | 7,310 | 83% | 100%† | 75% | 0.071 / 0.783 | reused SASRec + fresh data | **−0.024** ❌ |
-| Prime Pantry | 15,611 | 7,841 | 90.6% | 100% | 25% | 0.026 / 0.332 | fresh; SASRec trained by us | *training* |
-| Toys & Games (sub) | 9,513 | 7,253 | 91.7% | 100% | 47% | 0.107 / 0.289 | fresh; **subsampled**; SASRec trained | *training* |
+| Dataset | Users | Items | Img cov | Title cov | Cold % | SASRec cold/warm | Provenance |
+|---------|------:|------:|:-------:|:---------:|:------:|:----------------:|------------|
+| Luxury Beauty | 9,930 | 6,141 | 90% | 96.5% | 38% | 0.169 / 0.710 | reused (Extension-Paper) |
+| AMAZON_FASHION | 3,679 | 7,310 | 83% | 100%† | 75% | 0.071 / 0.783 | reused SASRec + fresh data |
+| Toys & Games (sub) | 9,513 | 7,253 | 91.7% | 100% | 47% | 0.107 / 0.289 | fresh; **subsampled**; SASRec trained |
+| Prime Pantry | 15,611 | 7,841 | 90.6% | 100% | 25% | 0.026 / 0.332 | fresh; SASRec trained by us |
 
-\* All Beauty image cov not re-measured post-fix. † AMAZON_FASHION titles recovered
-888 → 7,309 after the preprocess bug fix.
+† AMAZON_FASHION titles recovered 888 → 7,309 after the preprocess bug fix.
+
+> **All Beauty — DROPPED 2026-08-04.** 2,169u / 1,854i. Reason: **too small** (only 2,099 test
+> users) and an **outlier** in the density–crossover relationship (crossover ~0.9 vs its density 5.6,
+> because it is extremely warm-skewed — CF is unusually dominant, warm Hit@1 = 0.963). Its crossover
+> was real but muddy/weak (Δcold only +0.047). Artifacts kept on disk.
+>
+> **Prime Pantry — REINSTATED 2026-08-04.** It was excluded on 2026-08-03 under the *old vision
+> thesis* (vision was muddy there). That reason is moot — vision is a **null on every dataset** now.
+> Under the current **crossover** thesis Prime Pantry is one of the *best* datapoints: largest dataset
+> (15.6k users), a clean strong crossover (Δcold **+0.120**, Δwarm **+0.081**), and a **near-perfect**
+> density fit (crossover ~19.7 ≈ mean interactions/item 19.2) that anchors the high-density end.
+> Reinstating it raises the density correlation from r=0.89 to **r=0.98** (see `FINDING_2.md`).
+> _Note: these four are the CF↔LLM **crossover** set; vision is null, so per-dataset vision verdicts
+> no longer drive selection._
 
 ---
 
@@ -79,8 +91,10 @@ reuse the full-data model). Reported transparently here.
 - ViT-L zero-shot embeddings extracted → `data/clip/clip_{text,image}_Toys_and_Games_sub_vitl14_zeroshot.npy` (7254×768).
 - Config: `configs/toys_and_games_sub.yaml`.
 
-**Status (2026-07-31):** `clip_inject` training (GPU 2). `text` + `clip_align` queued for when
-Prime Pantry frees GPUs 0/1/3. Toys is our best-designed shot at a **second clear vision win**.
+**Status (2026-08-03):** ladder complete (SASRec / text / clip_align / clip_inject, ViT-L, 1 seed).
+Toys was originally chosen as a "second clear vision win"; under the ranking protocol vision is a
+null result here too — but Toys is a clean **crossover** datapoint (SASRec cold 0.107 ≪ warm 0.289,
+LLM reverses it), which is now the paper's headline. It stays in the final 4.
 
 ---
 
