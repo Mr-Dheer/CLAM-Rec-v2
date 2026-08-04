@@ -261,6 +261,18 @@ class ClamRec(nn.Module):
         perm = np.random.permutation(len(cand_txt))
         return ",".join(np.array(cand_txt)[perm]), np.array(cand_ids)[perm]
 
+    def load_shared_candidates(self, path):
+        """Load a precomputed {user: [candidate_ids]} set so ranking uses a FIXED
+        candidate pool shared across models (for honest fusion). Target is included."""
+        import json
+        raw = json.load(open(path))
+        self.shared_cands = {int(u): np.asarray(d["cands"]) for u, d in raw.items()}
+        print(f"[shared candidates] loaded {len(self.shared_cands)} users from {path}")
+
+    def _candidate_text(self, cand_ids):
+        mm = "[MMEmb]" if self.variant == "clip_inject" else ""
+        return ",".join(self._title(int(c)) + "[CandidateEmb]" + mm for c in cand_ids)
+
     def _domain_prompt(self, interact_text, candidate_text):
         p = " is a user representation.This user has bought " + interact_text
         p += (" in the previous. Recommend one next item for this user to buy next "
@@ -272,14 +284,19 @@ class ClamRec(nn.Module):
         target_id = pos[i][-1] if pos.ndim > 1 else pos[i]
         target_title = self._title(target_id)
         interact_text, interact_ids = self._make_interact(seq[i][seq[i] > 0])
-        candidate_text, candidate_ids = self._make_candidates(
-            seq[i][seq[i] > 0], self.cfg.candidate_num, target_id, target_title)
+        shared = getattr(self, "shared_cands", None)
+        if shared is not None:                          # fixed shared candidate pool
+            candidate_ids = shared[int(u[i])]
+            candidate_text = self._candidate_text(candidate_ids)
+        else:
+            candidate_text, candidate_ids = self._make_candidates(
+                seq[i][seq[i] > 0], self.cfg.candidate_num, target_id, target_title)
         prompt = self._domain_prompt(interact_text, candidate_text)
 
         interact_emb = self.item_emb_proj(self.get_item_emb(interact_ids))
         candidate_emb = self.item_emb_proj(self.get_item_emb(candidate_ids))
         out = dict(prompt=prompt, target_title=target_title, candidate_ids=candidate_ids,
-                   interact_emb=interact_emb, candidate_emb=candidate_emb)
+                   target_id=int(target_id), interact_emb=interact_emb, candidate_emb=candidate_emb)
         if self.variant == "clip_inject":
             out["interact_mm"] = self.mm_emb_proj(self.content_emb(interact_ids))
             out["candidate_mm"] = self.mm_emb_proj(self.content_emb(candidate_ids))
@@ -370,11 +387,11 @@ class ClamRec(nn.Module):
         u, seq, pos, neg = data
         log_emb = self.recsys.model(u, seq, pos, neg, mode="log_only")
         log_emb = self.log_emb_proj(log_emb)
-        generated, answers, ranked_lists = [], [], []
+        generated, answers, ranked_lists, extras = [], [], [], []
         chunk = getattr(self.cfg, "rank_chunk", 8)   # candidates scored per LLM forward (memory bound)
         for i in range(len(u)):
             s = self._build_sample(u, seq, pos, i)
-            cand_ids = list(s["candidate_ids"])
+            cand_ids = [int(c) for c in s["candidate_ids"]]
             cand_titles = [self._title(c) for c in cand_ids]
             n = len(cand_ids)
             scores = []
@@ -390,9 +407,12 @@ class ClamRec(nn.Module):
                 log_emb_c = log_emb[i].unsqueeze(0).repeat(m, 1)
                 scores.append(self.llm.score_titles(log_emb_c, sub))
             scores = torch.cat(scores)                                  # (n,) higher = better
+            sc = scores.detach().cpu().numpy()
             order = torch.argsort(scores, descending=True).cpu().numpy()
             ranked = [cand_titles[j] for j in order]
             answers.append(s["target_title"])
             generated.append(ranked[0])
             ranked_lists.append(ranked)
-        return generated, answers, ranked_lists
+            extras.append({"target_id": s["target_id"], "candidate_ids": cand_ids,
+                           "scores": [round(float(x), 5) for x in sc]})
+        return generated, answers, ranked_lists, extras

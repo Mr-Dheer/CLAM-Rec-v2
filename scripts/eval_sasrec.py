@@ -59,10 +59,17 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--seed", type=int, required=True)
     ap.add_argument("--max_users", type=int, default=0, help="limit users (smoke test only)")
+    ap.add_argument("--candidates_file", default=None, help="shared candidate pool json (for fusion)")
+    ap.add_argument("--out_tag", default=None, help="override output dir suffix (avoids clobbering _shared)")
     args = ap.parse_args()
 
     cfg = load_config(args.config, stage="inference")
     set_seed(args.seed)
+    shared = None
+    if args.candidates_file:
+        raw = json.load(open(args.candidates_file))
+        shared = {int(u): np.asarray(d["cands"]) for u, d in raw.items()}
+        print(f"[shared candidates] loaded {len(shared)} users from {args.candidates_file}")
     device = cfg.device if torch.cuda.is_available() else "cpu"
 
     with open(cfg.text_name_dict, "rb") as f:
@@ -80,7 +87,8 @@ def main():
     ds = SeqDatasetInference(user_train, user_valid, user_test, users, itemnum, cfg.maxlen)
     loader = DataLoader(ds, batch_size=cfg.batch_size_infer, pin_memory=True)
 
-    out_dir = Path("results") / f"{cfg.dataset}_sasrec"   # namespaced per dataset (uniform {dataset}_... scheme)
+    suffix = f"_{args.out_tag}" if args.out_tag else ("_shared" if shared is not None else "")
+    out_dir = Path("results") / f"{cfg.dataset}_sasrec{suffix}"   # namespaced per dataset
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"seed_{args.seed}.jsonl"
 
@@ -92,7 +100,10 @@ def main():
             for j in range(len(u)):
                 uid = int(u[j])
                 target = int(pos[j])
-                cands = sample_candidates(seq[j][seq[j] > 0], target, itemnum, cfg.candidate_num)
+                if shared is not None:
+                    cands = shared[uid]
+                else:
+                    cands = sample_candidates(seq[j][seq[j] > 0], target, itemnum, cfg.candidate_num)
                 cand_t = item_emb(torch.LongTensor(cands).to(device))       # (C, hidden)
                 scores = (log_emb[j].unsqueeze(0) * cand_t).sum(-1)          # (C,)
                 order = torch.argsort(scores, descending=True).cpu().numpy()  # rank candidates
@@ -102,6 +113,10 @@ def main():
                        "cold": tag["cold"], "train_count": tag["train_count"],
                        "answer": title_of(text_name_dict, target),
                        "generated": ranked[0], "ranked": ranked}
+                if shared is not None:
+                    rec["target_id"] = target
+                    rec["candidate_ids"] = [int(c) for c in cands]
+                    rec["scores"] = [round(float(x), 5) for x in scores.detach().cpu().numpy()]
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 n += 1
     print(f"wrote {n} records -> {out_path}")

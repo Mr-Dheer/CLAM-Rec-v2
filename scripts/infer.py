@@ -46,6 +46,10 @@ def main():
     ap.add_argument("--rank", action="store_true",
                     help="likelihood-ranking eval: rank the candidate set -> logs 'ranked' for Hit@1/5, NDCG@5")
     ap.add_argument("--rank_chunk", type=int, default=0, help="candidates scored per forward (0=default 8; use 20 on a free GPU)")
+    ap.add_argument("--candidates_file", default=None, help="shared candidate pool json (for fusion); logs target_id/candidate_ids/scores")
+    ap.add_argument("--out_tag", default=None, help="override output dir suffix (e.g. smoke100); avoids clobbering _shared runs")
+    ap.add_argument("--nshards", type=int, default=1, help="split users across N GPUs (each shard a separate process)")
+    ap.add_argument("--shard", type=int, default=0, help="which shard this process handles (0..nshards-1)")
     args = ap.parse_args()
 
     over = {"stage": "inference"}
@@ -68,6 +72,8 @@ def main():
     prefix = f"results/checkpoints/{run}/"
     model.load_stage1(prefix, freeze=True)
     model.load_stage2(prefix)
+    if args.candidates_file:
+        model.load_shared_candidates(args.candidates_file)
     model.eval()
 
     user_train, user_valid, user_test, usernum, itemnum = data_partition(cfg.interactions)
@@ -77,19 +83,29 @@ def main():
              if len(user_train.get(u, [])) >= 1 and len(user_test.get(u, [])) >= 1]
     if args.max_users:                      # for quick smoke tests only
         users = users[:args.max_users]
+    if args.nshards > 1:                     # multi-GPU: strided user split (balanced)
+        users = users[args.shard::args.nshards]
     ds = SeqDatasetInference(user_train, user_valid, user_test, users, itemnum, cfg.maxlen)
     loader = DataLoader(ds, batch_size=cfg.batch_size_infer, pin_memory=True)
 
-    out_dir = Path("results") / run
+    if args.out_tag:
+        out_run = f"{run}_{args.out_tag}"
+    else:
+        out_run = run + "_shared" if args.candidates_file else run   # keep fusion runs separate
+    out_dir = Path("results") / out_run
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"seed_{args.seed}.jsonl"
+    if args.nshards > 1:
+        out_path = out_dir / f"seed_{args.seed}.part{args.shard}of{args.nshards}.jsonl"
+    else:
+        out_path = out_dir / f"seed_{args.seed}.jsonl"
 
     n = 0
     with open(out_path, "w", encoding="utf-8") as f:
         for data in loader:
             u, seq, pos, neg = (x.numpy() for x in data)
+            extras = None
             if args.rank:
-                gen, ans, ranked = model.rank_candidates([u, seq, pos, neg])
+                gen, ans, ranked, extras = model.rank_candidates([u, seq, pos, neg])
             else:
                 gen, ans = model.generate([u, seq, pos, neg])
             for j in range(len(u)):
@@ -100,6 +116,8 @@ def main():
                        "answer": ans[j], "generated": gen[j]}
                 if args.rank:
                     rec["ranked"] = ranked[j]
+                    if args.candidates_file:
+                        rec.update(extras[j])   # target_id, candidate_ids, scores
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 n += 1
     print(f"wrote {n} records -> {out_path}")
