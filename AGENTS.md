@@ -27,8 +27,6 @@ Historical/design only (superseded): `PROJECT.md`, `STORY.md`, `OVERNIGHT_*`, `R
 Infra/how-to-run: `INFRASTRUCTURE.md`.
 
 ## Working notes
-- The human drives the paper's outline + related-work in-session; **assist**, don't unilaterally
-  draft the whole paper. You may read/run/modify code and (re)generate analyses/figures.
 - All numbers are already in the docs — you generally don't need to re-run. If you do, analysis
   scripts are CPU/fast; only `scripts/infer.py` needs a GPU. Env: `conda run -n ALLM-Rec python ...`.
 - One pending item: fill the Prime Pantry **fusion** rows (marked PENDING) once

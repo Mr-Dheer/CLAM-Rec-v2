@@ -60,10 +60,6 @@ NDCG@5/10, sliced cold/warm); ViT-L is irrelevant here (text baseline uses SBERT
   rows in `FINDING_4.md`, `RESULTS.md`, `FINDINGS.md`. (Fusion for Luxury/Fashion/Toys is already in.)
 - Everything is committed + pushed to `github.com:Mr-Dheer/CLAM-Rec-v2` (branch `master`).
 
-**The human (Kavach) will drive the paper's outline and related-work in-session.** Your job is to
-*assist* using the docs below as ground truth — don't unilaterally draft the whole paper. You *may*
-read/run/modify code and (re)generate analyses or figures as needed.
-
 ---
 
 ## Reading order (current-paper docs)
