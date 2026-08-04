@@ -55,6 +55,12 @@ Part 2 below (the vision-centric framing) is now SUPERSEDED by the above — kep
 
 ---
 
+> ⛔ **VISION IS OUT OF SCOPE for the current paper (2026-08-04).** Parts 1 and 2 below are
+> largely about the CLIP vision levers (`clip_align`, `clip_inject`, fine-tuning). **That content is
+> now for a SEPARATE vision paper — see `FINDING_3.md`.** The current paper is purely **CF vs LLM**
+> (`SASRec` + `text`); its story is `FINDINGS.md` + `FINDING_1/2/4.md`. Keep the sections below as
+> background/vision-paper material only — do not use them for the current paper.
+
 ## Part 1 — The three levers (what each actually does)
 
 ### The shared base (identical in all variants)

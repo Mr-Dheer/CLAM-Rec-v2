@@ -37,8 +37,11 @@ popularity; the vision angle is a **null** result under ranking (see `STORY.md`)
 **This is the paper's primary results.** Likelihood-ranking over **20 candidates** (1 ground-truth
 + 19 negatives): each candidate title scored by the LLM's length-normalized log-likelihood (SASRec
 by dot-product), ranked → **Hit@{1,5,10}, NDCG@{5,10}**, sliced **overall / cold** (target train
-count ≤ 5) **/ warm** (> 5). All ViT-L/14, fusion = concat, **1 seed** (seed 0). Ladder per dataset:
-**SASRec (CF only) → text (+LLM) → clip_align → clip_inject.**
+count ≤ 5) **/ warm** (> 5). **1 seed** (seed 0).
+
+> ⛔ **This paper reports only `SASRec` and `text`.** The `clip_align` / `clip_inject` rows in the
+> tables below are **vision variants, OUT OF SCOPE** for this paper (moved to `FINDING_3.md` for a
+> separate vision paper). They are retained here only as a data record — **do not cite them.**
 
 #### Luxury Beauty — n=9912 (3763 cold / 6149 warm)
 
@@ -171,19 +174,12 @@ wins cold and CF wins warm** — the consistent CF↔LLM crossover. LLMs add val
 where the sign flips) tracks dataset density: **Pearson r = +0.89 vs mean interactions/item, +0.98
 vs mean history length** (`figures/crossover_sparsity.*`, `scripts/analysis_crossover.py`).
 
-### Vision is a null under ranking (cold Hit@1 vs text)
+### Vision (CLIP) — ⛔ OUT OF SCOPE for this paper (moved to a separate vision paper)
 
-| Dataset | text cold | clip_align Δ | clip_inject Δ |
-|---|:-:|:-:|:-:|
-| Luxury Beauty | 0.492 | −0.022 | **−0.056** |
-| AMAZON_FASHION | 0.158 | −0.014 | −0.028 |
-| Toys & Games (sub) | 0.237 | −0.018 | −0.006 |
-| Prime Pantry | 0.146 | −0.050 | +0.002 |
-
-Adding visual signal does **not** help cold items under ranking — neutral-to-negative in all 4
-datasets (Δ ≤ +0.014), whether vision reaches the LLM (`inject`) or is only an alignment target
-(`align`). The apparent Luxury **+0.076** under the *generation* protocol (older tables below)
-**reverses to −0.056** here. Vision = ruled-out confound.
+The vision variants (`clip_align`, `clip_inject`) and the vision null result are **not part of this
+paper** — see **`FINDING_3.md`**. This paper reports only **SASRec** and **text**. The `clip_*` rows
+that remain in the per-dataset ranking tables above are kept only as a **data record** (they were run);
+**do not cite them in this paper.**
 
 ### CF+LLM fusion (ensemble) — ✅ COMPLETE (the deployable popularity-gated fusion WINS)
 

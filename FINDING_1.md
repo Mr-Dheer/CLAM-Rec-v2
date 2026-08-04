@@ -215,9 +215,9 @@ that cold-start exists*.
 
 | What | Where |
 |------|-------|
-| Per-bin crossover (SASRec vs text vs inject) | `scripts/analysis_crossover.py` |
+| Per-bin crossover (SASRec vs text) | `scripts/analysis_crossover.py` |
 | Curves + density figure | `scripts/plot_crossover_sparsity.py` → `figures/crossover_sparsity.{pdf,png}` |
-| Ranking results | `results/{ds}_{sasrec,text_concat,clip_inject_concat_vitl14_zeroshot}/seed_0.jsonl` |
+| Ranking results | `results/{ds}_{sasrec,text_concat}/seed_0.jsonl` |
 | SASRec ranking baseline | `scripts/eval_sasrec.py` |
 | LLM ranking | `scripts/infer.py --rank`, `clam_rec/model/clam_rec.py:rank_candidates`, `llm4rec.py:score_titles` |
 | Hit@1 / rank | `clam_rec/eval/metrics.py:record_hit_at_1`, `record_rank` |

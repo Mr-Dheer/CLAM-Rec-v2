@@ -216,8 +216,9 @@ evaluated on the held-out half.
 ---
 
 ## 11. How to write this section of the paper
-- **Placement:** Result 4 (the prescriptive payoff), after the crossover (1) and density (2), with
-  the vision null (3) in between. A method figure (the worked example, §4) + the full results table.
+- **Placement:** Result 3 (the prescriptive payoff), after the crossover (1) and density (2).
+  A method figure (the worked example, §4) + the full results table. (Vision is out of scope for this
+  paper — see `FINDING_3.md`.)
 - **Narrative:** the crossover implies complementarity → a per-candidate popularity gate exploits it →
   it beats both models and ≈ oracle → naive fusion doesn't → learned gate confirms the fixed rule.
 - **Lead with:** "naive fusion fails, popularity-aware fusion wins" — that contrast is the message

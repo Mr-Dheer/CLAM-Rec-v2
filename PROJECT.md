@@ -18,7 +18,9 @@ fine-tuning levers + how we position the paper and the narrative to avoid the v1
 rejection trap), (5) `DATASETS.md` (per-dataset provenance/prep/selection + the
 subsampling method), (6) `EVAL_PROTOCOL.md` (why we rank over 20 candidates — a hard
 OPT-2048-context constraint, locked), (7) **`FINDINGS.md` — the detailed experiment-by-experiment
-walkthrough with code pointers; READ THIS (and the code it references) before writing the paper.**
+walkthrough with code pointers; READ THIS (and the code it references) before writing the paper**
+(per-finding deep-dives: `FINDING_1/2/4.md`). ⛔ **`FINDING_3.md` = the vision results, for a
+SEPARATE future paper — NOT part of this paper; do not use it here.**
 Persistent memory index: `MEMORY.md` in the memory dir.
 
 ---
@@ -42,11 +44,10 @@ Vision is reported as a ruled-out confound. Evidence: `scripts/analysis_crossove
   (Updated 2026-08-04: **All Beauty dropped** — small/density-outlier; **Prime Pantry reinstated** —
   its old exclusion was under the vision thesis, now null; it's a clean crossover + best density fit.
   See `DATASETS.md`, `FINDING_2.md`.)
-- **Single backbone = ViT-L/14.** ⛔ **bigG dropped entirely** (not even an appendix).
-- **Ladder per dataset:** **SASRec → text → clip_align → clip_inject** (all ViT-L, concat,
-  1 seed). ⛔ **fine-tune / RQ3 dropped** (parked).
-- **Fusion:** ⛔ **not a study.** We tried concat / mean / gating; **concat was best**, so
-  fusion is fixed = concat everywhere → a one-line note in the paper.
+- ⛔ **VISION OUT OF SCOPE (2026-08-04).** This paper is purely **CF vs LLM**; ladder per dataset =
+  **SASRec → text**. The vision variants (`clip_align`, `clip_inject`), CLIP fine-tuning, bigG, and
+  the generation→ranking reversal are **moved to a separate vision paper — see `FINDING_3.md`**. The
+  code/data stay in the repo; they are just not part of this paper. Do not report vision here.
 
 **Done (4-dataset ladders complete, 1 seed each, generation Hit@1 fuzzy@0.90 — see `RESULTS.md`):**
 - **Luxury:** SASRec 0.507 / text 0.601 / clip_align 0.614 / clip_inject 0.598.

@@ -12,25 +12,29 @@
 
 ---
 
-## 0. TL;DR — the thesis and the four contributions
+## 0. TL;DR — the thesis and the three contributions
 
 **Thesis.** *When do LLMs help sequential recommendation? LLMs and collaborative filtering (CF)
 are complementary along the axis of item popularity: the LLM wins on cold/rare items, CF wins on
-warm/popular items — a consistent crossover across datasets. Vision (CLIP) does not shift it, and a
-simple popularity-gated fusion exploits the complementarity to beat both.*
+warm/popular items — a consistent crossover across datasets. The crossover point is predicted by
+dataset density, and a simple popularity-gated fusion exploits the complementarity to beat both.*
 
 **Per-finding deep-dive docs** (detailed standalone walkthroughs — method, mechanism, code, paper
 phrasing): `FINDING_1.md` (crossover), `FINDING_2.md` (density), `FINDING_4.md` (fusion).
-`FINDING_3.md` (vision null) not yet written. This file (`FINDINGS.md`) is the master index.
+This file (`FINDINGS.md`) is the master index for **this** paper.
 
-**Four contributions (= four results sections):**
-1. **The CF↔LLM crossover** — LLM beats CF on cold items, CF beats LLM on warm items; monotonic,
-   all 4 datasets, on Hit@1/5/10. (§4)
+> ⛔ **Vision (CLIP) is OUT OF SCOPE for this paper.** This paper is purely **CF vs LLM** — it uses
+> only the `SASRec` and `text` variants. The vision variants (`clip_align`, `clip_inject`), CLIP
+> fine-tuning, and the generation→ranking protocol reversal are **parked for a separate vision
+> paper** — see `FINDING_3.md`. Do **not** include any vision result here (it would dilute this
+> story and scoop the vision paper).
+
+**Three contributions (= three results sections):**
+1. **The CF↔LLM crossover** — LLM (`text`) beats CF (`SASRec`) on cold items, CF beats the LLM on
+   warm items; monotonic, all 4 datasets, on Hit@1/5/10. (§4)
 2. **The crossover point is predicted by dataset density** — it lands near the dataset's mean
-   interactions/item (Pearson r ≈ +0.89; r ≈ +0.98 vs mean history length). (§5)
-3. **Vision is a null** — adding CLIP (as an alignment target *or* injected into the LLM) does not
-   help cold items under ranking; a ruled-out confound. (§6)
-4. **Popularity-gated fusion (prescriptive)** — weighting each candidate's CF vs LLM score by that
+   interactions/item (Pearson r ≈ +0.98; r ≈ +0.99 vs mean history length). (§5)
+3. **Popularity-gated fusion (prescriptive)** — weighting each candidate's CF vs LLM score by that
    candidate's popularity beats *both* pure models on all 4 datasets and ≈ the oracle ceiling;
    naive fusion (RRF, equal-weight) does not. (§7)
 
@@ -63,19 +67,15 @@ so the LLM can use collaborative knowledge and *generate the next item's title*.
   `generate`, `rank_candidates`), `clam_rec/model/llm4rec.py` (OPT wrapper, `score_titles`,
   `replace_soft_tokens`), `clam_rec/model/sasrec.py` (frozen SASRec).
 
-### 1.2 The variant ladder (the experimental axis)
-One model, a `variant` switch (`clam_rec/model/clam_rec.py`):
+### 1.2 The two variants (the experimental axis)
+One model, a `variant` switch (`clam_rec/model/clam_rec.py`) — **this paper uses only these two**:
 - **SASRec** — CF only, no LLM. The floor. Ranks candidates by dot-product.
   Code: `scripts/eval_sasrec.py`.
-- **text** — A-LLMRec baseline; Stage-1 content = SBERT; no vision.
-- **clip_align** — content = fused CLIP, used *only* as a Stage-1 alignment target; **the visual
-  signal never reaches the LLM at inference** (the "bottleneck"). Control for the mechanism test.
-- **clip_inject** — same CLIP alignment **plus** a per-item `[MMEmb]` soft token filled with the
-  item's CLIP embedding (via a trained `mm_emb_proj`) placed next to each title in the prompt, so
-  vision **does** reach the LLM. (`content_emb`, `_build_sample` in `clam_rec.py`.)
+- **text** — A-LLMRec; Stage-1 content = SBERT; the LLM ranks candidate titles by likelihood.
 
-All ViT-L/14 CLIP, `concat` fusion. (bigG backbone, RQ3 fine-tuning, RQ2 fusion study, Prime
-Pantry — all **dropped**; see §9.)
+> The model also supports vision variants (`clip_align`, `clip_inject`), but **vision is out of
+> scope for this paper** and parked for a separate vision paper (`FINDING_3.md`). Do not report it
+> here.
 
 ### 1.3 Datasets (4) — see `DATASETS.md` for full provenance
 Amazon Review 2018 (McAuley v2), k-core filtered, leave-one-out:
@@ -133,9 +133,9 @@ The original (pre-rewrite) pipeline was not reproducible; we rebuilt with verifi
 **Question.** As a function of item popularity, when does the LLM beat CF and vice-versa?
 
 **Setup.** Compare `SASRec` (CF) vs `text` (LLM) Hit@1, binned by the target item's train
-interaction count. (Also `clip_inject` — tracks `text`.)
+interaction count.
 
-**Code.** `scripts/analysis_crossover.py` (bins by train_count, prints per-bin SASRec/text/inject
+**Code.** `scripts/analysis_crossover.py` (bins by train_count, prints per-bin SASRec/text
 Hit@1 and the `text−CF` gap, flags the sign flip). Reads the `seed_0.jsonl` ranking files.
 **Reproduce:** `conda run -n ALLM-Rec python scripts/analysis_crossover.py`.
 
@@ -211,44 +211,14 @@ excluded from results, would be a 5th point for *this* correlation if needed.)
 
 ---
 
-## 6. Experiment 3 — vision is a null result
+## 6. ⛔ Vision (CLIP) — MOVED TO A SEPARATE PAPER (not in this paper)
 
-**Question.** Does adding visual (CLIP) signal help — and does *how* it enters (alignment target vs
-injected into the LLM) matter?
-
-**Setup.** Compare `text` vs `clip_align` vs `clip_inject`, sliced cold/warm. `clip_align` =
-bottleneck (vision doesn't reach the LLM at inference); `clip_inject` = vision reaches the LLM.
-Code for the mechanism difference: `clam_rec/model/clam_rec.py` (`content_emb`, the `[MMEmb]` path
-in `_build_sample`; `clip_inject` trains `mm_emb_proj` in Stage 2, `clip_align` does not use it).
-CLIP features: `clam_rec/clip/extract.py`; fusion methods: `clam_rec/fusion/fusion.py`.
-Analysis: `scripts/analysis_mechanism.py`.
-
-**Results (cold-slice Hit@1 vs text; ranking):**
-
-| Dataset | text cold | clip_align Δ | clip_inject Δ |
-|---------|:---------:|:------------:|:-------------:|
-| Luxury | 0.492 | −0.022 | **−0.056** |
-| Fashion | 0.158 | −0.014 | −0.028 |
-| Toys | 0.237 | −0.018 | −0.006 |
-| Prime Pantry | 0.146 | −0.050 | +0.002 |
-
-All deltas ≤ +0.014, mostly negative, both directions across datasets → **no systematic vision
-benefit**, whether or not vision reaches the LLM.
-
-**Interpretation.** `text` and all `clip` variants use the same LLM; the only difference is whether
-CLIP embeddings are added. Since `text ≈ clip`, the LLM's power comes from **titles (text), not
-images**. Vision is a **ruled-out confound** — we tested it thoroughly precisely so we could
-exclude it as the explanation.
-
-**Important robustness note — protocol reversal.** Under the *older generation* protocol (LLM
-generates one title, Hit@1 by title match) Luxury vision looked like it *helped* cold (+0.076). Under
-the *ranking* protocol it **reverses to −0.056**. This is why the paper reports ranking and treats
-the generation gain as a protocol artifact. (Both protocols' numbers are in `RESULTS.md`; generation
-tables are marked "secondary/historical".)
-
-**Paper mapping.** Result 3 (secondary) — "we controlled for and ruled out visual signal." Keep it
-one figure/table; do not let it grow back into a co-headline (that would collide with the sibling
-paper *Smol-Rec*; see §10).
+The vision result (adding CLIP is a null; the generation→ranking protocol reversal; CLIP
+fine-tuning; backbone dependence) is **out of scope for this paper** and parked in **`FINDING_3.md`**
+for a dedicated vision paper. Reasons: (a) none of this paper's findings use the vision variants —
+they use only `SASRec` and `text`; (b) keeping vision out removes the collision with the sibling
+vision paper *Smol-Rec*; (c) putting the vision null here would scoop the future vision paper.
+**Do not report any CLIP/vision result in this paper.**
 
 ---
 
@@ -348,7 +318,6 @@ diagnostic.
 - **Candidate-sampling stability** — shared vs own candidates differ by ≤0.008 Hit@1 (§7.1). Code:
   compare `results/{ds}_sasrec/` vs `results/{ds}_sasrec_shared/`.
 - **Metric holds across k** — crossover present at Hit@1/5/10 (`RESULTS.md` full tables).
-- **Generation→ranking reversal** — vision's apparent Luxury gain reverses under ranking (§6).
 - **Not yet done:** multi-seed (all numbers are seed 0). The crossover's robustness argument is
   currently *cross-dataset + monotonic*; ≥2–3 seeds would add per-cell significance.
 
@@ -368,9 +337,10 @@ All parked in `RESULTS.md` with numbers, and in `STORY.md`/`PROJECT.md` §0.0 wi
 ## 10. Positioning (for intro / related work)
 - **vs A-LLMRec (base):** we don't propose a new architecture; we *analyze* the base as an
   instrument and add the fusion. Same 20-candidate protocol → comparable.
-- **vs Smol-Rec (sibling, same authors, under review):** different backbone (text LLM + precomputed
-  CLIP vs a VLM), different question (item *popularity conditions* vs image *budget*). Vision being a
-  *null* here removes the collision — do **not** make "inject vision into the LLM" a headline.
+- **vs Smol-Rec (sibling, same authors, under review):** *entirely different question* — this paper
+  is **CF vs LLM complementarity** (no vision at all), Smol-Rec is about visual-context budget. Since
+  this paper contains **no vision**, there is no collision. (The vision work is a separate paper —
+  `FINDING_3.md` — which is where Smol-Rec positioning must be handled.)
 - **vs LLM-SRec:** we borrow only the *ranking metric definitions*, not its two-tower retrieval
   architecture. We answer its question ("do LLMs understand sequential rec?") empirically with the
   crossover + the deployable fusion.
@@ -399,8 +369,8 @@ All parked in `RESULTS.md` with numbers, and in `STORY.md`/`PROJECT.md` §0.0 wi
 - `clam_rec/eval/metrics.py` — `record_rank` (L68), `hit_at_k`, `ndcg_at_k`, `record_hit_at_1`.
 - `clam_rec/data/partition.py` — `data_partition` (L20), `tag_cold_warm` (L55).
 - `clam_rec/data/preprocess.py` — preprocessing + `_clean_title`.
-- `clam_rec/clip/extract.py`, `download_images.py` — CLIP features/images.
-- `clam_rec/fusion/fusion.py` — concat/mean/gating/text_only.
+  _(CLIP/vision code — `clam_rec/clip/`, `clam_rec/fusion/`, `clam_rec/finetune/` — is for the
+  separate vision paper; see `FINDING_3.md`.)_
 
 **Run / train:**
 - `scripts/train.py` — train stage 1/2.
@@ -414,13 +384,12 @@ All parked in `RESULTS.md` with numbers, and in `STORY.md`/`PROJECT.md` §0.0 wi
 - `scripts/analysis_crossover.py` — §4 crossover (per-bin Hit@1).
 - `scripts/plot_crossover_sparsity.py` — §4+§5 figure → `figures/crossover_sparsity.{pdf,png}`.
 - `scripts/plot_crossover.py` — earlier crossover figure → `figures/crossover.{pdf,png}`.
-- `scripts/analysis_mechanism.py` — §6 vision mechanism.
-- `scripts/analysis_ensemble.py` — §7 fusion (Hit@1/5, NDCG@5, cold/warm).
+- `scripts/analysis_ensemble.py` — fusion (Hit@1/5, NDCG@5, cold/warm).
 - `scripts/analysis_ensemble_full.py` — §7 fusion, full metrics (the paper table).
 - `scripts/analysis_learned_gate.py` — §7.5 learned-gate ablation.
 
 **Data / results:**
-- `results/{dataset}_{sasrec,text_concat,clip_align_concat_vitl14_zeroshot,clip_inject_concat_vitl14_zeroshot}/seed_0.jsonl`
+- `results/{dataset}_{sasrec,text_concat}/seed_0.jsonl`
   — per-variant ranking results (own candidates).
 - `results/{dataset}_{sasrec,text_concat}_shared/seed_0.jsonl` — shared candidates + per-candidate
   scores (fusion input).
