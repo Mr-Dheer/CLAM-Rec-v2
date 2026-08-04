@@ -53,11 +53,13 @@ NDCG@5/10, sliced cold/warm); ViT-L is irrelevant here (text baseline uses SBERT
 
 ## Current status (2026-08-04)
 
-- Findings 1, 2, 3(vision, parked), and the analysis for 4 are **done and written up**.
-- **Pending:** the **Prime Pantry fusion** numbers. The shared-candidate re-inference for Prime
-  Pantry was running (sharded across GPUs). If `results/Prime_Pantry_text_concat_shared/seed_0.jsonl`
-  has 15,606 lines, it's done — then run `scripts/analysis_ensemble_full.py` and fill the "PENDING"
-  rows in `FINDING_4.md`, `RESULTS.md`, `FINDINGS.md`. (Fusion for Luxury/Fashion/Toys is already in.)
+- Findings 1, 2, 3 (vision, parked), and 4 are **done and written up** — including the Prime Pantry
+  fusion (completed 2026-08-04). All 4 datasets have full ranking + fusion numbers.
+- **Honest nuance in F4:** pop-gate beats both pure models on **Hit@1 in all 4 datasets**, but
+  **Prime Pantry is CF-dominant** (CF beats the LLM overall) so there pop-gate wins Hit@1/NDCG yet
+  pure CF wins Hit@5/10; the learned gate also beats the fixed density pivot there. Captured in
+  `FINDING_4.md` / `RESULTS.md`.
+- **No open experiments.** The only deliberate non-item is multi-seed (we are not doing it).
 - Everything is committed + pushed to `github.com:Mr-Dheer/CLAM-Rec-v2` (branch `master`).
 
 ---

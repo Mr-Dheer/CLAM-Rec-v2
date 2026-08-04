@@ -29,6 +29,6 @@ Infra/how-to-run: `INFRASTRUCTURE.md`.
 ## Working notes
 - All numbers are already in the docs — you generally don't need to re-run. If you do, analysis
   scripts are CPU/fast; only `scripts/infer.py` needs a GPU. Env: `conda run -n ALLM-Rec python ...`.
-- One pending item: fill the Prime Pantry **fusion** rows (marked PENDING) once
-  `results/Prime_Pantry_text_concat_shared/seed_0.jsonl` reaches 15606 lines — run
-  `scripts/analysis_ensemble_full.py`. See `CLAUDE.md` "Current status".
+- All 4 findings are complete (incl. Prime Pantry fusion). Honest nuance: pop-gate beats both pure
+  models on Hit@1 in all 4, but Prime Pantry is CF-dominant so there CF wins Hit@5/10 — see
+  `FINDING_4.md`. No open experiments.

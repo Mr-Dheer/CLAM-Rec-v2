@@ -41,14 +41,17 @@ This file (`FINDINGS.md`) is the master index for **this** paper.
 **Headline numbers** (ranking, Hit@1, 20 candidates, seed 0):
 
 _(Dataset set updated 2026-08-04: All Beauty dropped (small/outlier), Prime Pantry added; see
-`DATASETS.md`. Prime Pantry fusion number pending its shared re-inference.)_
+`DATASETS.md`.)_
 
 | Dataset | SASRec cold | text cold | SASRec warm | text warm | pop-gate overall |
 |---------|:-----------:|:---------:|:-----------:|:---------:|:----------------:|
 | Luxury Beauty | 0.169 | **0.492** | **0.710** | 0.666 | **0.622** (>0.600) |
 | AMAZON_FASHION | 0.071 | **0.158** | **0.783** | 0.725 | **0.308** (>0.292) |
 | Toys & Games (sub) | 0.107 | **0.237** | **0.289** | 0.267 | **0.266** (>0.247) |
-| Prime Pantry | 0.026 | **0.146** | **0.332** | 0.252 | _pending_ |
+| Prime Pantry | 0.026 | **0.146** | **0.332** | 0.252 | **0.286** (>0.254)† |
+
+_(pop-gate overall = Hit@1. †Prime Pantry is CF-dominant — CF beats the LLM overall there; pop-gate
+still wins Hit@1 and NDCG but pure CF wins Hit@5/10. See `FINDING_4.md`.)_
 
 ---
 

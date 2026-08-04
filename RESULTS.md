@@ -195,23 +195,27 @@ pure **text**; **RRF** (rank fusion, no popularity); **z-fuse** (equal-weight sc
 | **Luxury** | Hit@1 | 0.501 | 0.600 | 0.539 | 0.575 | **0.622** | 0.627 |
 |            | Hit@5 | 0.709 | 0.756 | 0.744 | 0.748 | **0.801** | 0.816 |
 |            | NDCG@5| 0.612 | 0.682 | 0.646 | 0.667 | **0.718** | 0.728 |
-| **All Beauty** | Hit@1 | 0.568 | 0.574 | 0.569 | 0.571 | **0.606** | 0.599 |
-|                | Hit@5 | 0.627 | 0.705 | 0.644 | 0.634 | **0.709** | 0.718 |
 | **Fashion** | Hit@1 | 0.246 | 0.292 | 0.252 | 0.260 | **0.308** | 0.310 |
 |             | Hit@5 | 0.382 | 0.475 | 0.407 | 0.390 | **0.497** | 0.519 |
 | **Toys (sub)** | Hit@1 | 0.206 | 0.247 | 0.242 | 0.254 | **0.266** | 0.278 |
 |                | Hit@5 | 0.484 | 0.497 | 0.520 | 0.530 | **0.554** | 0.584 |
+| **Prime Pantry** | Hit@1 | 0.254 | 0.220 | 0.251 | 0.276 | **0.286** | 0.292 |
+|                  | Hit@5 | **0.592** | 0.462 | 0.568 | 0.581 | 0.577 | 0.616 |
+|                  | NDCG@5| 0.428 | 0.342 | 0.413 | 0.432 | **0.436** | 0.461 |
 
-**pop-gate Δ over best pure model (Hit@1):** Luxury **+0.022**, All Beauty **+0.031**, Fashion
-**+0.015**, Toys **+0.019** — **positive on all 4**, and ≈ the oracle upper bound (sometimes above
-it, since per-candidate weighting is finer than a single global route). Hit@5/NDCG@5 gains are
-larger (e.g. Toys Hit@5 +0.058, Luxury Hit@5 +0.045, NDCG@5 +0.036).
+**pop-gate Δ over best pure model (Hit@1):** Luxury **+0.022**, Fashion **+0.015**, Toys **+0.019**,
+Prime Pantry **+0.032** — **positive on all 4**, ≈ the oracle upper bound. Hit@5/NDCG@5 gains are
+larger on the LLM-favorable datasets (Toys Hit@5 +0.058, Luxury Hit@5 +0.045). **Prime Pantry is the
+honest exception:** it is CF-dominant (CF > text overall), so pop-gate wins Hit@1/NDCG but pure CF
+wins Hit@5/10 there.
 
-**Key finding:** naive fusion does **not** help — **RRF is negative** (−0.005 to −0.061) and
-equal-weight **z-fuse is ~neutral**. Only fusion that **weights CF vs LLM by item popularity**
-— i.e. that *uses the crossover* — beats both pure models. So the crossover is not just diagnostic:
-a simple, deployable popularity-gated score fusion turns it into a prescriptive method that
-beats both collaborative filtering and the LLM on every dataset.
+**Key finding:** on the LLM-favorable datasets (Luxury, Fashion, Toys) naive fusion does **not** help
+— **RRF is negative** and equal-weight **z-fuse is ~neutral** — only **popularity-weighted** fusion
+(using the crossover) beats both pure models. On the CF-dominant Prime Pantry, both z-fuse and
+pop-gate beat pure CF on Hit@1 (the LLM adds a little on cold), with pop-gate still best. So the
+takeaway holds: **the crossover is prescriptive — a deployable popularity-gated fusion beats both
+pure models on Hit@1 across all 4 datasets** (and dominates at every k on the three LLM-competitive
+ones; on CF-dominant Prime Pantry it wins Hit@1/NDCG but not Hit@5/10).
 
 ---
 

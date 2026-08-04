@@ -121,11 +121,23 @@ Bold = the deployable **pop-gate** winning a column. `*` ORACLE = non-deployable
 | **pop-gate** | **0.622** | **0.801** | 0.884 | **0.718** | **0.744** | 0.480 | 0.709 |
 | ORACLE* | 0.627 | 0.816 | 0.896 | 0.728 | 0.754 | 0.494 | 0.708 |
 
-### Prime Pantry (n=15606) — ⏳ PENDING
-Fusion for Prime Pantry requires its shared-candidate scores; the sharded re-inference is running
-(2026-08-04). This table + the summary gains will be filled from `analysis_ensemble_full.py` when it
-completes. (Prime Pantry's crossover is strong — cold SASRec 0.026 vs text 0.146 — so a clear pop-gate
-win is expected.)
+### Prime Pantry (n=15606) — CF-dominant dataset (honest nuance)
+| Method | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 | cold H@1 | warm H@1 |
+|--------|:-----:|:-----:|:------:|:------:|:-------:|:--------:|:--------:|
+| CF (SASRec) | 0.254 | **0.592** | **0.787** | 0.428 | 0.491 | 0.028 | 0.328 |
+| text (LLM) | 0.220 | 0.462 | 0.678 | 0.342 | 0.411 | 0.143 | 0.245 |
+| RRF | 0.251 | 0.568 | 0.784 | 0.413 | 0.483 | 0.042 | 0.319 |
+| z-fuse | 0.276 | 0.581 | 0.775 | 0.432 | 0.495 | 0.057 | 0.348 |
+| **pop-gate** | **0.286** | 0.577 | 0.759 | **0.436** | **0.495** | 0.112 | 0.342 |
+| ORACLE* | 0.292 | 0.616 | 0.783 | 0.461 | 0.514 | 0.143 | 0.341 |
+
+**Prime Pantry is the honest exception.** Unlike the other three, here **CF beats the LLM overall**
+(CF Hit@1 0.254 > text 0.220) — it is a very warm-skewed (75% warm), CF-dominant dataset. pop-gate is
+still the **best deployable Hit@1** (0.286, +0.032 over CF) and the best NDCG, and it beats both pure
+models — but at **Hit@5/10 pure CF wins** (0.592/0.787 vs pop-gate 0.577/0.759), because blending in
+the LLM (weak on this dataset's dominant warm items) costs a little at higher k. Report this openly:
+the fusion's *primary-metric* (Hit@1) win holds on all 4 datasets; on the CF-dominant dataset it does
+not dominate at every k.
 
 ### AMAZON_FASHION (n=3261)
 | Method | Hit@1 | Hit@5 | Hit@10 | NDCG@5 | NDCG@10 | cold H@1 | warm H@1 |
@@ -148,21 +160,24 @@ win is expected.)
 | ORACLE* | 0.278 | 0.584 | 0.784 | 0.433 | 0.498 | 0.228 | 0.323 |
 
 **pop-gate Hit@1 gain over the best pure model:** Luxury **+0.022**, Fashion **+0.015**,
-Toys **+0.019** (Prime Pantry pending). Hit@5 gains are larger (Toys **+0.058**, Luxury **+0.045**).
+Toys **+0.019**, Prime Pantry **+0.032** — **positive on all 4**. Hit@5 gains are larger on the
+LLM-favorable datasets (Toys **+0.058**, Luxury **+0.045**) but Prime Pantry is CF-dominant, where
+pop-gate wins Hit@1/NDCG yet loses Hit@5/10 to pure CF (see its table above).
 
 ---
 
 ## 7. How to read the results (in depth)
 
-1. **pop-gate wins essentially every column, every dataset** — not just Hit@1 but Hit@5, NDCG@5,
-   NDCG@10 too. It beats *both* pure models simultaneously.
-2. **pop-gate ≈ oracle** everywhere (within ~0.01–0.02; on All Beauty Hit@1 it *exceeds* the oracle,
-   0.606 vs 0.599). It captures nearly all the achievable complementarity — **deployably**. It can
-   beat the oracle because per-candidate weighting is *finer* than the oracle's single all-or-nothing
-   route of the whole decision.
+1. **pop-gate beats both pure models on Hit@1 in all 4 datasets**, and on the three LLM-competitive
+   ones (Luxury/Fashion/Toys) it wins essentially every column (Hit@1/5/10, NDCG@5/10). **Prime Pantry
+   is the exception:** CF-dominant, so pop-gate wins Hit@1 and NDCG but pure CF wins Hit@5/10 (§6).
+2. **pop-gate ≈ oracle** on the three LLM-competitive datasets (within ~0.01–0.02, sometimes above,
+   since per-candidate weighting is finer than the oracle's single route). On Prime Pantry it trails
+   the oracle a bit more at higher k, and a *learned* gate does better than the fixed density pivot
+   (§8) — the density pivot is slightly too high when CF dominates.
 3. **The cold/warm columns make the mechanism visible.** Look at pop-gate:
    - its **cold** Hit@1 ≈ the **LLM's** cold (Luxury 0.480 vs LLM 0.494; Fashion 0.144 = 0.144),
-   - its **warm** Hit@1 ≈ the **CF's** warm (Luxury 0.709 vs CF 0.706; All Beauty 0.962 vs 0.960).
+   - its **warm** Hit@1 ≈ the **CF's** warm (Luxury 0.709 vs CF 0.706).
    It **inherits the stronger expert in each regime** — exactly the design intent, observable in the
    numbers.
 4. **Naive fusion clearly loses.** RRF Hit@1 is *below* the best pure model on Luxury (0.539 < 0.600),
@@ -183,11 +198,15 @@ parameters), fit to rank the target first via softmax cross-entropy, **on a trai
 evaluated on the held-out half.
 - **Code:** `scripts/analysis_learned_gate.py`. **Reproduce:**
   `conda run -n ALLM-Rec python scripts/analysis_learned_gate.py`.
-- **Result:** learned ≈ fixed within **±0.004** (both directions) on all datasets, both just under
-  oracle → **learning the gate adds nothing; the simple formula is already near-optimal.**
-- **Bonus:** the learned 50/50 point (pop ≈ 14.7 / 4.1 / 3.3 / 8.4) lands near each dataset's mean
-  interactions/item — an independent rediscovery of the density pivot (Finding 2).
-- **Reporting:** one sentence + footnote, *not* a table (a negative ablation that *reassures*).
+- **Result:** on **Luxury / Fashion / Toys** learned ≈ fixed within ±0.004 → the fixed density-pivot
+  formula is already near-optimal there. On **Prime Pantry** (CF-dominant) the learned gate is
+  *better* (Hit@5 0.613 vs fixed 0.580; NDCG@5 0.455 vs 0.440): its learned 50/50 pivot (~2.4) is far
+  **below** PP's density (19.2), i.e. it learns to trust CF more than the density rule prescribes.
+- **Reading:** the fixed density pivot is near-optimal when the LLM is competitive (3/4 datasets),
+  but *slightly too high* when CF dominates (Prime Pantry), where a learned gate recovers a bit more.
+  So the learned pivot ≈ density on 3/4 (an independent rediscovery of Finding 2), with PP the
+  documented exception.
+- **Reporting:** a short paragraph — this is an informative nuance, not a pure null.
 
 ---
 

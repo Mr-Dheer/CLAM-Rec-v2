@@ -155,11 +155,18 @@ including both — see `FINDINGS.md` history — so it does not depend on the sw
 
 In Finding 4's ablation (`scripts/analysis_learned_gate.py`) we let a 2-parameter gate
 `w = sigmoid(a·log(pop) + b)` *learn* the CF-vs-LLM handoff from data (no prior), fit on a train half
-of users. Its learned 50/50 point (where `w=0.5`, i.e. `pop = exp(−b/a)`) landed at popularity
-≈ **14.7 / 4.1 / 3.3 / 8.4** for Luxury / All Beauty / Fashion / Toys — close to each dataset's mean
-interactions/item (**10.4 / 5.6 / 2.5 / 10.8**). **A blind optimizer rediscovered the density
-relationship**, which strongly corroborates that "crossover ≈ density" is real and not an artifact
-of the binning/interpolation in §3.
+of users. Its learned 50/50 point (`pop = exp(−b/a)`) landed at popularity ≈ **14.7 / 3.3 / 8.4** for
+Luxury / Fashion / Toys — close to each dataset's mean interactions/item (**10.4 / 2.5 / 10.8**): a
+blind optimizer roughly **rediscovers the density relationship** on the three LLM-competitive
+datasets, corroborating that "crossover ≈ density" is real (not an artifact of §3's binning).
+
+**Documented exception — Prime Pantry.** There the learned pivot is ≈ **2.4**, far *below* its density
+(19.2). Prime Pantry is **CF-dominant** (CF beats the LLM overall), so the gate — which optimizes
+ranking, not "match the crossover" — learns to trust CF far more broadly than the density rule
+prescribes. So the "learned pivot ≈ density" corroboration holds on 3/4 datasets; on the CF-dominant
+one the optimal *fusion* pivot and the *crossover* location diverge. (This does not affect the
+crossover-vs-density correlation itself, r=0.98 — that is measured from the crossover, §4, and Prime
+Pantry sits on the line there. It only qualifies the learned-gate corroboration.)
 
 ---
 
