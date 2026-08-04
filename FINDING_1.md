@@ -185,7 +185,8 @@ that cold-start exists*.
 ---
 
 ## 8. Caveats (state honestly)
-- **1 seed** (mitigated by monotonicity + cross-dataset consistency; multi-seed pending).
+- **1 seed** (deliberately no multi-seed; mitigated by monotonicity + cross-dataset consistency —
+  state as a limitation).
 - **20 candidates** (bounded by OPT context; `EVAL_PROTOCOL.md`). Metrics are optimistic vs a
   100-negative eval, but the crossover *direction* is candidate-count-robust.
 - **Toys is subsampled** (random users, seed fixed pre-results, SASRec retrained; `DATASETS.md`).

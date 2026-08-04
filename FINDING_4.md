@@ -224,8 +224,8 @@ evaluated on the held-out half.
 ---
 
 ## 10. Caveats (state honestly)
-- **1 seed.** Gains are +0.015 to +0.031 Hit@1 — real and consistent across 4 datasets, but per-cell
-  significance wants ≥2–3 seeds (pending).
+- **1 seed** (deliberately no multi-seed). Gains are +0.015 to +0.032 Hit@1 — real and consistent
+  across 4 datasets; per-cell significance would want ≥2–3 seeds — state as a limitation.
 - **20 candidates** (`EVAL_PROTOCOL.md`). Absolute values optimistic; the *relative* fusion win is
   the claim.
 - **pivot choice.** We use `pivot = mean interactions/item` (no fitting). The learned-gate ablation
