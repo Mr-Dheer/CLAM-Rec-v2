@@ -495,17 +495,16 @@ users**, **≥ ~70% image coverage**, **≥ ~80% title coverage+uniqueness** (Fa
 |---------|------:|------:|:-------:|:------:|----------|
 | Luxury Beauty | 9,930 | 6,141 | 90% | 38% | ✅ paper |
 | AMAZON_FASHION | 3,679 | 7,310 | 83% | 74.8% | ✅ paper |
-| All Beauty | 2,169 | 1,854 | 70% | 45% | ✅ paper |
 | Toys & Games (sub) | 9,513 | 7,253 | 91.7% | 47% | ✅ paper (subsampled) |
-| Prime Pantry | 15,611 | 7,841 | 90.6% | 24.6% | ⛔ prepared but EXCLUDED (not favorable) |
+| Prime Pantry | 15,611 | 7,841 | 90.6% | 24.6% | ✅ paper (reinstated 2026-08-04) |
+| All Beauty | 2,169 | 1,854 | 70% | 45% | ⛔ dropped 2026-08-04 (too small / density outlier) |
 | Video Games | 64,073 | 33,614 | 82% | 20.8% | ✗ ~70h/run |
 | Musical Instruments | 40,644 | 30,676 | 69% | 36% | ✗ ~44h/run |
 | Arts & Crafts | 86,810 | 64,072 | 55% | 38% | ✗ too big + low img |
 | Appliances | 1,568 | 3,473 | 40% | 81% | ✗ image coverage |
 
-**Final 4: Luxury Beauty + All Beauty + AMAZON_FASHION + Toys & Games (sub).** Prime Pantry was
-fully prepared but excluded 2026-08-03 (results not favorable). See `DATASETS.md` for full
-provenance.
+**Final 4: Luxury Beauty + AMAZON_FASHION + Toys & Games (sub) + Prime Pantry** (updated 2026-08-04:
+All Beauty dropped, Prime Pantry reinstated). See `DATASETS.md` for full provenance + rationale.
 
 **NEW screening criterion — title coverage.** The whole eval is title-generation-based, so items
 need non-empty, mostly-unique titles. A [preprocess bug](../clam_rec/data/preprocess.py) coupled
