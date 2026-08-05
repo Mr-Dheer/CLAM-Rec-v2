@@ -17,3 +17,15 @@ assets/
 
 # shared candidate pools — regenerable via scripts/make_candidates.py (deterministic)
 data/candidates/
+
+# LaTeX build artifacts (paper in Cambodia/)
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
