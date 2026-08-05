@@ -341,15 +341,7 @@ All parked in `RESULTS.md` with numbers, and in `STORY.md`/`PROJECT.md` §0.0 wi
 ---
 
 ## 10. Positioning (for intro / related work)
-- **vs A-LLMRec (base):** we don't propose a new architecture; we *analyze* the base as an
-  instrument and add the fusion. Same 20-candidate protocol → comparable.
-- **vs Smol-Rec (sibling, same authors, under review):** *entirely different question* — this paper
-  is **CF vs LLM complementarity** (no vision at all), Smol-Rec is about visual-context budget. Since
-  this paper contains **no vision**, there is no collision. (The vision work is a separate paper —
-  `FINDING_3.md` — which is where Smol-Rec positioning must be handled.)
-- **vs LLM-SRec:** we borrow only the *ranking metric definitions*, not its two-tower retrieval
-  architecture. We answer its question ("do LLMs understand sequential rec?") empirically with the
-  crossover + the deployable fusion.
+
 - **Suggested framing:** "When do LLMs help sequential recommendation?" — CF/LLM complementarity
   along popularity, a density-predicted crossover, vision ruled out, and a popularity-gated fusion.
 

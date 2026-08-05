@@ -187,26 +187,7 @@ Pantry sits on the line there. It only qualifies the learned-gate corroboration.
 
 ---
 
-## 10. How to write this section of the paper
 
-- **Placement:** Result 2, immediately after the crossover (Result 1). Shares Figure 1 (panel b).
-- **Figure:** `figures/crossover_sparsity.png` panel (b) — scatter of crossover vs mean
-  interactions/item, `y=x` line, points labeled, r annotated.
-- **Arc of the paragraph:** (i) the crossover point varies ~10× across datasets; (ii) it tracks
-  dataset density (r≈0.98 / 0.99); (iii) mechanism — CF's per-item reliability is relative to typical
-  density; (iv) confirmed independently by the learned gate (on 3/4; see §8); (v) caveat n=4.
-- **Suggested sentences (adapt):**
-  > "The crossover point varies substantially across datasets (from ~2 interactions on Fashion to
-  > ~20 on Prime Pantry). This variation is not arbitrary: the crossover point correlates with the
-  > dataset's mean interactions per item (Pearson r = 0.98) and with mean user history length (r =
-  > 0.99), landing near the dataset's typical per-item interaction count. Intuitively, collaborative
-  > filtering's per-item reliability is relative to the dataset's density — an item must reach roughly
-  > the typical interaction count before its embedding overtakes the LLM's content signal — so denser
-  > datasets exhibit a later crossover. A gate trained to combine the two models (Section [Fusion])
-  > independently recovers a comparable handoff point on three of the four datasets. Given only four
-  > datasets these correlations are suggestive rather than conclusive."
-
----
 
 ## 11. Code & data pointers (quick index for this finding)
 

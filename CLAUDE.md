@@ -75,6 +75,12 @@ NDCG@5/10, sliced cold/warm); ViT-L is irrelevant here (text baseline uses SBERT
 4. **`DATASETS.md`** — per-dataset provenance/prep/selection.
 5. **`EVAL_PROTOCOL.md`** — why ranking uses 20 candidates (the OPT-2048 constraint).
 
+**Writing the paper:** the LaTeX project is in **`Cambodia/`** (LNCS template; `samplepaper.tex`).
+Read **`Cambodia/WRITING_STYLE.md`** for the target writing style (it points to well-written exemplar
+PDFs in `Cambodia/reference-paper/` — read those for *style*, not content). Content/numbers come from
+the docs above; Figure 1 is `figures/crossover_sparsity.pdf`. TeX Live is installed
+(`~/texlive/2026/bin`); build with `latexmk -pdf` or via Overleaf (repo is synced to it).
+
 **Separate vision paper:** `FINDING_3.md` (do not use in this paper).
 
 **Historical / design context (NOT paper-writing docs — superseded, read only if you need the

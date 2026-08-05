@@ -29,3 +29,7 @@ data/candidates/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*-eps-converted-to.pdf
+
+# copyrighted reference PDFs — kept local for the writing session, not pushed to public GitHub
+Cambodia/reference-paper/

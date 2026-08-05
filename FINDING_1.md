@@ -194,21 +194,7 @@ that cold-start exists*.
 
 ---
 
-## 9. How to write this section of the paper
-- **Placement:** Result 1 (the headline), right after setup. Figure 1(a) = the gap-vs-popularity
-  curves; a cold/warm summary table.
-- **Lead with the mechanism datapoint:** SASRec = 0.000 at `train_count=0` while the LLM works — it
-  makes the "CF has no signal for unseen items" argument visceral and undeniable.
-- **Emphasize the warm-side loss**, not just the cold-side gain — that's the novel half.
-- **Suggested sentences (adapt):**
-  > "We slice ranking accuracy by the target item's training frequency. Collaborative filtering's
-  > accuracy is a steep monotone function of item popularity — at zero training interactions it is
-  > exactly chance (Hit@1 = 0.000), since the item's embedding is never updated — whereas the LLM,
-  > which ranks from item titles, is largely popularity-invariant. Consequently the two methods
-  > cross over: the LLM significantly outperforms CF on cold items (e.g. +0.32 Hit@1 on Luxury), while
-  > CF outperforms the LLM on warm items, and the gap decays monotonically across popularity in all
-  > four datasets. Notably, adding the LLM *degrades* warm-item ranking — the average gain hides a
-  > large cold-item benefit and a consistent warm-item cost."
+
 
 ---
 

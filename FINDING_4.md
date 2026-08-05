@@ -195,7 +195,7 @@ pop-gate wins Hit@1/NDCG yet loses Hit@5/10 to pure CF (see its table above).
 
 ---
 
-## 8. Ablation — learned gate (confirms the fixed formula is near-optimal)
+## 8.  learned gate (confirms the fixed formula is near-optimal)
 We replace the fixed `w = pop/(pop+pivot)` with a **learned** `w = sigmoid(a·log(pop) + b)` (2
 parameters), fit to rank the target first via softmax cross-entropy, **on a train half of users**,
 evaluated on the held-out half.
@@ -237,27 +237,7 @@ evaluated on the held-out half.
 
 ---
 
-## 11. How to write this section of the paper
-- **Placement:** Result 3 (the prescriptive payoff), after the crossover (1) and density (2).
-  A method figure (the worked example, §4) + the full results table. (Vision is out of scope for this
-  paper — see `FINDING_3.md`.)
-- **Narrative:** the crossover implies complementarity → a per-candidate popularity gate exploits it →
-  it beats both models and ≈ oracle → naive fusion doesn't → learned gate confirms the fixed rule.
-- **Lead with:** "naive fusion fails, popularity-aware fusion wins" — that contrast is the message
-  (it's not "ensembling helps," it's "*using the crossover* helps").
-- **Suggested sentences (adapt):**
-  > "The crossover implies collaborative filtering and the LLM are complementary, which we exploit with
-  > a popularity-gated fusion: we z-normalize each model's candidate scores per user and combine them
-  > per candidate as `w·s_CF + (1−w)·s_LLM`, with `w = pop/(pop+pivot)` weighting collaborative
-  > filtering by the candidate's popularity (`pivot` = mean interactions per item, the measured
-  > crossover). This deployable fusion beats both pure models on Hit@1 and NDCG (@5 and @10) on all
-  > four datasets (Hit@1 gains +0.015 to +0.032), and on Hit@5/10 on the three LLM-competitive
-  > datasets; it matches an oracle that routes by the true item's popularity. Popularity-agnostic fusion
-  > — reciprocal-rank fusion or equal-weight score fusion — does not help and is often worse than the
-  > better single model, showing the gain comes specifically from exploiting the popularity structure.
-  > A gate with a learned popularity threshold matches the fixed rule, confirming it is near-optimal."
 
----
 
 ## 12. Code & data pointers (quick index)
 
