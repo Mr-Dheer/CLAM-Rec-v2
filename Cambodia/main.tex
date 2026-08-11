@@ -138,8 +138,8 @@ decoders are not required at inference.
 
 The goal of Stage~2 is to adapt the language model to the next-item recommendation
 task. We use OPT-6.7B~\cite{opt} as the large language model. Two small projection
-modules map recommendation-side vectors into its token embedding space, so that the
-collaborative signal reaches the language model without altering the model itself.
+modules map the user and item representations into its token embedding space, so that
+the collaborative signal reaches the language model without altering its parameters.
 
 % TODO(figure): prompt-structure diagram goes here once drawn, e.g.
 %   \begin{figure}[t] \includegraphics[width=\linewidth]{pivot-rec-prompt.pdf}
