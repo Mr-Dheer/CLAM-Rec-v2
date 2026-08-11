@@ -136,27 +136,37 @@ decoders are not required at inference.
 \subsection{Stage 2: LLM Integration}
 \label{sec:stage2}
 
-Stage~2 connects the aligned item representations to a frozen language model. We use
-OPT-6.7B~\cite{opt} as the large language model. The only components trained
-in this stage are two small projection modules that map recommendation-side vectors
-into the language model's token embedding space. The first takes the sequence
-representation SASRec produces for the user and maps it to a single embedding,
-prepended to the input as a soft token summarising that user's behaviour. The second
-maps the $128$-dimensional aligned item representations from Stage~1 into the same
-space, one embedding per item. In this way the collaborative signal reaches the
-language model without altering the model itself.
+The goal of Stage~2 is to adapt the language model to the next-item recommendation
+task. We use OPT-6.7B~\cite{opt} as the large language model, and reach it through two
+small projection modules that map recommendation-side vectors into its token embedding
+space. In this way the collaborative signal reaches the language model without
+altering the model itself.
 
-These embeddings are inserted into a natural-language prompt. The prompt lists the
-titles of the ten most recent items in the user's history, followed by the titles of
-the candidate items, and closes by asking for the next recommendation. Each title is
-followed by a placeholder token whose embedding is replaced by that item's projected
-representation, so the language model observes both the surface form of an item and
-its collaborative representation at the same position.
+% TODO(figure): prompt-structure diagram goes here once drawn, e.g.
+%   \begin{figure}[t] \includegraphics[width=\linewidth]{pivot-rec-prompt.pdf}
+%   \caption{...} \label{fig:prompt-structure} \end{figure}
+% Projection dimensions for the diagram: user 50 -> 4096, item 128 -> 4096.
 
-During training the model is asked to produce the title of the ground-truth next
-item. The two projections are optimised with the language modelling cross-entropy
-computed over the target title alone; tokens belonging to the prompt are masked out
-of the loss.
+Two non-textual signals are incorporated into the prompt. First, the \textbf{user
+soft token} is the $50$-dimensional SASRec sequence embedding, which summarises the
+user's whole historical preferences; a two-layer MLP projects it into the model's
+$4096$-dimensional token space, and it is prepended as a single soft token at the
+start of the input. Second, the \textbf{item soft tokens} at \texttt{[HistoryEmb]} and
+\texttt{[CandidateEmb]} are the $128$-dimensional joint sequential--textual embeddings
+from Stage~1, which preserve both ranking signal and item semantics, projected into
+the same $4096$-dimensional token space by a second two-layer MLP.
+
+These signals are assembled into a natural-language prompt. It lists the titles of the
+ten most recent items in the user's history, followed by the titles of the candidate
+items, and closes by asking for the next recommendation. Each placeholder is
+positioned directly after its item's title, so the language model observes the surface
+description of an item and its collaborative representation at the same position.
+
+Stage~2 trains only the two projection MLPs described above, while all other
+components, the language model, SASRec, and the Stage-1 item encoder, remain frozen.
+The model is trained for next-item prediction using a standard autoregressive
+cross-entropy loss over the ground-truth next-item title, conditioned on the assembled
+prompt; tokens belonging to the prompt itself are masked out of the loss.
 
 At inference we do not generate free-form text. Each candidate title is instead scored
 by its length-normalised log-likelihood, the mean log-probability the model assigns to
