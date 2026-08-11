@@ -33,8 +33,245 @@ TODO: abstract.
 \keywords{TODO \and TODO.}
 \end{abstract}
 
-% TODO: write the paper. Structure it as you judge best from the content docs and the style
-% references above.
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Overview}
+\label{sec:overview}
+
+We propose Pivot-Rec, a two-stage sequential recommendation framework that ranks
+candidate items using two complementary signals: a collaborative recommender
+trained on interaction data, and a frozen large language model that reads item
+titles. Given a user's chronological interaction history and a set of candidate
+items, Pivot-Rec scores every candidate with both signals and combines them
+according to the candidate item's popularity.
+
+Stage~1 (Section~\ref{sec:stage1}) aligns SASRec item embeddings~\cite{sasrec}
+with Sentence-BERT text embeddings~\cite{reimers2019sentence}, producing joint
+sequential--textual item representations. Stage~2 (Section~\ref{sec:stage2})
+assembles a user representation, these item representations, and the candidate
+titles into a prompt for a frozen OPT-6.7B~\cite{opt}, which scores each
+candidate title by its likelihood.
+
+The two signals are not interchangeable. Their relative reliability depends on
+item popularity, and the point at which one overtakes the
+other varies across datasets (Section~\ref{sec:crossover-method}). Pivot-Rec
+exploits this with PopGate (Section~\ref{sec:popgate}), which weights each
+candidate's collaborative and language-model score by that candidate's own
+popularity.
+
+
+\subsection{Collaborative Filtering Backbone}
+\label{sec:cf}
+
+The collaborative component of Pivot-Rec is SASRec~\cite{sasrec}, a self-attentive
+sequential recommender that models user behaviour from interaction data alone.
+Every item is assigned a learned $50$-dimensional embedding, and a user's history
+is represented as the sequence of embeddings of the items that user has interacted
+with, truncated or padded to a fixed window of the most recent interactions and
+combined with learned positional embeddings. Stacked self-attention blocks with
+causal masking aggregate this sequence, so that each position attends only to
+earlier interactions, and the output at the final position serves as the user's
+sequence representation.
+
+To rank a candidate item, SASRec takes the dot product between this sequence
+representation and the candidate's item embedding, and orders candidates by the
+resulting score. SASRec is trained on each dataset's interaction data and kept
+frozen thereafter. It supplies the item embeddings that Stage~1 aligns with text,
+the sequence representation that Stage~2 passes to the language model, and the
+collaborative score that PopGate combines with the language model's.
+
+Because item embeddings are learned solely from co-occurrence, the quality of this
+collaborative signal varies across items. An item's embedding is updated only when
+that item appears in a training sequence, so items observed many times acquire
+embeddings that encode fine-grained behavioural structure, while items observed
+rarely retain embeddings close to their initialisation and receive scores that carry
+little information. Item popularity therefore governs how far the collaborative
+signal can be trusted, a dependence that Section~\ref{sec:crossover-method}
+quantifies and Section~\ref{sec:popgate} exploits.
+
+
+
+
+
+
+\subsection{Stage 1: Sequential--Textual Alignment}
+\label{sec:stage1}
+
+Stage~1 constructs an item representation that preserves the sequential signal
+learned from interaction data while incorporating information from textual
+metadata. SASRec item embeddings encode collaborative relationships, but they
+are tied to item identifiers and do not explicitly represent what an item is.
+Textual metadata provides this complementary semantic description. The purpose
+of the alignment stage is therefore to transfer textual information into the
+collaborative representation without discarding its recommendation signal.
+
+For each item, we pair its frozen 50-dimensional SASRec embedding with a
+textual embedding. We encode the title and description using Sentence-BERT,
+obtaining a 768-dimensional text embedding; the text encoder is fine-tuned
+during alignment. Two encoder--decoder branches process the collaborative and
+textual representations, respectively. Each
+encoder maps its input into a shared 128-dimensional latent space, while the
+corresponding decoder reconstructs the original input. The two inputs are thus
+aligned through a common bottleneck rather than concatenated into a single
+feature vector.
+
+We optimize the alignment module with three complementary objectives. A
+matching loss brings the collaborative and textual encodings closer in the
+shared space. Reconstruction losses preserve the information carried by each
+input and discourage degenerate aligned representations. Finally, a binary
+recommendation loss scores reconstructed positive and negative item embeddings
+against the frozen SASRec sequence representation. This objective ensures that
+the aligned representation retains the ranking structure learned from user--item
+interactions, rather than optimizing semantic agreement alone.
+
+Following the alignment strategy of A-LLMRec~\cite{kim2024large}, Stage~1 is
+trained to bring sequential and textual item representations into a common
+latent space. Once training is complete, only the collaborative-side encoder is
+retained. It maps each SASRec item embedding to the 128-dimensional aligned item
+representation used in Stage~2; the textual encoder and both reconstruction
+decoders are not required at inference.
+
+
+\subsection{Stage 2: LLM Integration}
+\label{sec:stage2}
+
+Stage~2 connects the aligned item representations to a frozen language model. We use
+OPT-6.7B~\cite{opt} as the large language model. The only components trained
+in this stage are two small projection modules that map recommendation-side vectors
+into the language model's token embedding space. The first takes the sequence
+representation SASRec produces for the user and maps it to a single embedding,
+prepended to the input as a soft token summarising that user's behaviour. The second
+maps the $128$-dimensional aligned item representations from Stage~1 into the same
+space, one embedding per item. In this way the collaborative signal reaches the
+language model without altering the model itself.
+
+These embeddings are inserted into a natural-language prompt. The prompt lists the
+titles of the ten most recent items in the user's history, followed by the titles of
+the candidate items, and closes by asking for the next recommendation. Each title is
+followed by a placeholder token whose embedding is replaced by that item's projected
+representation, so the language model observes both the surface form of an item and
+its collaborative representation at the same position.
+
+During training the model is asked to produce the title of the ground-truth next
+item. The two projections are optimised with the language modelling cross-entropy
+computed over the target title alone; tokens belonging to the prompt are masked out
+of the loss.
+
+At inference we do not generate free-form text. Each candidate title is instead scored
+by its length-normalised log-likelihood, the mean log-probability the model assigns to
+the tokens of that title given the prompt, and candidates are ranked by this score.
+Normalising by title length prevents short titles from being favoured simply for
+having fewer tokens. Because the prompt enumerates every candidate title, its length
+grows with the number of candidates, which is what bounds the candidate set in our
+evaluation (Section~\ref{sec:protocol}).
+
+
+\subsection{Measuring the Crossover}
+\label{sec:crossover-method}
+% Two run-in paragraphs, no sub-subsections.
+%
+% *Popularity binning.*
+% - DEFINE ITEM POPULARITY HERE (first use): the target item's interaction count in the training
+%   split only -> leakage-free. Item-side, not user-side.
+% - Bin test users by that count (fixed bins; bins under 20 users dropped, so the x-grid differs
+%   slightly per dataset).
+% - Per bin: the Hit@1 gap (LLM - CF). The declining curve, not any single bin, is the finding.
+%
+% *Locating the crossover.*
+% - Crossover point = first downward zero crossing, linearly interpolated between bin centres
+%   (linear in the counts, though the figure uses a log x-axis).
+% - The two DESCRIPTIVE density statistics: mean interactions/item, mean history length, over all
+%   interactions of the preprocessed dataset.
+% - CRITICAL: this descriptive density is NOT the training-only pivot PopGate uses. FINDING_2.md 7
+%   and FINDING_4.md 3 both insist on the distinction.
+% - The correlation is over n = 4 datasets; flag here, defend in Limitations.
+% - Source: scripts/analysis_crossover.py, scripts/plot_crossover_sparsity.py.
+
+
+\subsection{PopGate: Popularity-Gated Fusion}
+\label{sec:popgate}
+% - One-line motivation: the crossover makes "which signal to trust" a PER-CANDIDATE question.
+% - Shared candidate pool: both signals score an identical 20-candidate set per user with
+%   per-candidate scores logged. Say why it is required -- fusing independently sampled candidate
+%   sets is invalid. scripts/make_candidates.py.
+% - Per-user normalisation: dot products and log-likelihoods share no scale, so each model's 20
+%   scores are z-scored within a user. Prose, no display.
+% - EQUATION 1 -- the gate:  w(c) = pop(c) / (pop(c) + pi_train)
+%   pi_train = mean nonzero item popularity in the TRAINING split. Leakage-free and known at
+%   inference, which is what makes PopGate deployable.
+% - EQUATION 2 -- the fused score:  w(c) z_CF(c) + (1 - w(c)) z_LLM(c)
+% - Comparison methods: RRF (ranks only, k = 60), equal-weight (w = 1/2 everywhere), and the
+%   ORACLE, which routes by the TRUE target's popularity -- an upper bound, NOT deployable.
+% - Close with the learned-gate ablation in one or two sentences: a 2-parameter sigmoid gate fit
+%   on half the users, evaluated on the other half. No table.
+% - Source: FINDING_4.md 3 and 5; scripts/analysis_ensemble_full.py, analysis_learned_gate.py.
+
+
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Datasets}
+\label{sec:datasets}
+% - 4 Amazon Review 2018 categories: Luxury Beauty, AMAZON_FASHION, Toys & Games (sub),
+%   Prime Pantry. Users / items / cold fraction / density table.
+% - Toys is a 15% random-user subsample, seed fixed before any result, SASRec retrained.
+% - Source: DATASETS.md. OPEN ITEM -- DATASETS.md says 5-core but preprocess.py uses 4-core for
+%   Beauty/Toys; resolve before writing.
+
+
+\subsection{Evaluation Protocol}
+\label{sec:protocol}
+% - THE LEAVE-ONE-OUT SPLIT LIVES HERE: per user, last interaction = test, second-to-last =
+%   validation, rest = training.
+% - 1 ground-truth item + 19 sampled negatives = 20 candidates, fixed everywhere.
+% - Why 20 is locked is architectural, not preference: the prompt lists candidate titles and
+%   OPT's context is 2048 tokens, so larger pools overflow it.
+% - Source: EVAL_PROTOCOL.md; clam_rec/data/partition.py.
+
+
+\subsection{Metrics and Popularity Slicing}
+\label{sec:metrics}
+% - Hit@1/5/10 and NDCG@5/10. One relevant item, so NDCG reduces to 1/log2(rank+1); one inline
+%   sentence each, no displayed equations.
+% - cold = target training count <= 5, warm otherwise. Refers back to the popularity definition
+%   in the crossover subsection rather than restating it.
+% - The two scoring conventions, stated honestly: crossover analyses identify the target by
+%   normalised/fuzzy TITLE match (threshold 0.90), fusion analyses by item ID.
+%   Source: clam_rec/eval/metrics.py.
+
+
+\subsection{Implementation Details}
+\label{sec:impl}
+% - Frozen SASRec: hidden 50, maxlen 50, 2 blocks, 1 head. Frozen OPT-6.7B in 8-bit.
+% - 10 + 10 epochs, Adam, lr 1e-4, single A6000.
+% - SINGLE SEED (seed 0) throughout -- state plainly here, defend in Limitations.
+% - Source: RESULTS.md "Fixed experimental setup"; scripts/train.py, scripts/train_sasrec.py.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
