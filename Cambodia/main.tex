@@ -174,24 +174,33 @@ the tokens of that title given the prompt, and candidates are ranked by this sco
 
 \subsection{Measuring the Crossover}
 \label{sec:crossover-method}
-% Two run-in paragraphs, no sub-subsections.
-%
-% *Popularity binning.*
-% - DEFINE ITEM POPULARITY HERE (first use): the target item's interaction count in the training
-%   split only -> leakage-free. Item-side, not user-side.
-% - Bin test users by that count (fixed bins; bins under 20 users dropped, so the x-grid differs
-%   slightly per dataset).
-% - Per bin: the Hit@1 gap (LLM - CF). The declining curve, not any single bin, is the finding.
-%
-% *Locating the crossover.*
-% - Crossover point = first downward zero crossing, linearly interpolated between bin centres
-%   (linear in the counts, though the figure uses a log x-axis).
-% - The two DESCRIPTIVE density statistics: mean interactions/item, mean history length, over all
-%   interactions of the preprocessed dataset.
-% - CRITICAL: this descriptive density is NOT the training-only pivot PopGate uses. FINDING_2.md 7
-%   and FINDING_4.md 3 both insist on the distinction.
-% - The correlation is over n = 4 datasets; flag here, defend in Limitations.
-% - Source: scripts/analysis_crossover.py, scripts/plot_crossover_sparsity.py.
+
+The goal of this analysis is to establish how the reliability of the two signals varies
+with item popularity, and where the balance between them tips. Both are prerequisites
+for PopGate (Section~\ref{sec:popgate}): weighting the signals by popularity is only
+justified if their relative accuracy depends on it, and the weighting needs a
+principled point at which one signal gives way to the other. We define the popularity
+of an item as the number of times it occurs in the training split, a property of the
+item rather than of the user, counted without validation or test interactions so that
+it remains available for any candidate at inference. Grouping test cases by the
+popularity of their ground-truth item and comparing Hit@1 of the two signals within
+each group yields an accuracy difference that varies with popularity; we call the
+popularity at which this difference changes sign the \emph{crossover point}. To ask
+whether that point is predictable from the data alone, we pair it with two descriptive
+statistics of each dataset, the mean number of interactions per item and the mean user
+history length, both computed over all interactions of the preprocessed data. These
+characterise the dataset as a whole and are used only for this analysis; they are
+deliberately distinct from the training-split statistic that PopGate uses at inference.
+
+% MOVED TO RESULTS (must appear beside the crossover figure, do not lose):
+% - bin edges [(0,0),(1,1),(2,2),(3,4),(5,7),(8,12),(13,20),(21,35),(36,60),(61,inf)]
+%   with centres [0.5,1,2,3.5,6,10,16,28,48,80];
+% - bins holding fewer than 20 test cases are dropped, so the x-grid differs per dataset;
+% - the crossover point is obtained by linear interpolation between the centres of the
+%   two bins straddling zero (first downward crossing only);
+% - both signals rank the same candidates for the same users, so the difference isolates
+%   the scoring signal;
+% - the correlation rests on n = 4 datasets -> report as suggestive, not established.
 
 
 \subsection{PopGate: Popularity-Gated Fusion}
