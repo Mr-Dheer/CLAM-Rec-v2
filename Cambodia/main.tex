@@ -138,8 +138,9 @@ decoders are not required at inference.
 
 The goal of Stage~2 is to adapt the language model to the next-item recommendation
 task. We use OPT-6.7B~\cite{opt} as the large language model. Two small projection
-modules map the user and item representations into its token embedding space, so that
-the collaborative signal reaches the language model without altering its parameters.
+modules map the user and item representations into the model's token embedding space,
+so that the collaborative signal reaches the language model without altering its
+parameters.
 
 % TODO(figure): prompt-structure diagram goes here once drawn, e.g.
 %   \begin{figure}[t] \includegraphics[width=\linewidth]{pivot-rec-prompt.pdf}
@@ -155,11 +156,11 @@ start of the input. Second, the \textbf{item soft tokens} at \texttt{[HistoryEmb
 from Stage~1, which preserve both ranking signal and item semantics, projected into
 the same $4096$-dimensional token space by a second two-layer MLP.
 
-These signals are assembled into a natural-language prompt. It lists the titles of the
-ten most recent items in the user's history, followed by the titles of the candidate
-items, and closes by asking for the next recommendation. Each placeholder is
-positioned directly after its item's title, so the language model observes the surface
-description of an item and its collaborative representation at the same position.
+These signals are assembled into a natural-language prompt. The prompt states the
+titles of the ten most recent items in the user's history, instructs the model to
+recommend the next item from a listed set of candidate titles. Each placeholder is positioned directly
+after its item's title, so the language model observes the surface description of an
+item and its collaborative representation at the same position.
 
 Stage~2 trains only the two projection MLPs described above, while all other
 components, the language model, SASRec, and the Stage-1 item encoder, remain frozen.
@@ -167,14 +168,9 @@ The model is trained for next-item prediction using a standard autoregressive
 cross-entropy loss over the ground-truth next-item title, conditioned on the assembled
 prompt; tokens belonging to the prompt itself are masked out of the loss.
 
-At inference we do not generate free-form text. Each candidate title is instead scored
+At inference each candidate title is scored
 by its length-normalised log-likelihood, the mean log-probability the model assigns to
 the tokens of that title given the prompt, and candidates are ranked by this score.
-Normalising by title length prevents short titles from being favoured simply for
-having fewer tokens. Because the prompt enumerates every candidate title, its length
-grows with the number of candidates, which is what bounds the candidate set in our
-evaluation (Section~\ref{sec:protocol}).
-
 
 \subsection{Measuring the Crossover}
 \label{sec:crossover-method}
