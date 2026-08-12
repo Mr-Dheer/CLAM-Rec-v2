@@ -90,11 +90,6 @@ little information. Item popularity therefore governs how far the collaborative
 signal can be trusted, a dependence that Section~\ref{sec:crossover-method}
 quantifies and Section~\ref{sec:popgate} exploits.
 
-
-
-
-
-
 \subsection{Stage 1: Sequential--Textual Alignment}
 \label{sec:stage1}
 
@@ -202,26 +197,59 @@ history length, both computed over all interactions of the data.
 
 \subsection{PopGate: Popularity-Gated Fusion}
 \label{sec:popgate}
-% - One-line motivation: the crossover makes "which signal to trust" a PER-CANDIDATE question.
-% - Shared candidate pool: both signals score an identical 20-candidate set per user with
-%   per-candidate scores logged. Say why it is required -- fusing independently sampled candidate
-%   sets is invalid. scripts/make_candidates.py.
-% - Per-user normalisation: dot products and log-likelihoods share no scale, so each model's 20
-%   scores are z-scored within a user. Prose, no display.
-% - EQUATION 1 -- the gate:  w(c) = pop(c) / (pop(c) + pi_train)
-%   pi_train = mean nonzero item popularity in the TRAINING split. Leakage-free and known at
-%   inference, which is what makes PopGate deployable.
-% - MUST state here (moved out of 1.5): pi_train is computed on the training split only
-%   and is NOT the descriptive all-interaction density of 1.5 -- e.g. Luxury 8.9 vs 10.4.
-%   Conflating them implies the gate uses test information. FINDING_2.md 7, FINDING_4.md 3.
-% - ALSO moved from 1.5: popularity is a training statistic, so it is known for every
-%   candidate at ranking time -- this is what separates PopGate from the oracle.
-% - EQUATION 2 -- the fused score:  w(c) z_CF(c) + (1 - w(c)) z_LLM(c)
-% - Comparison methods: RRF (ranks only, k = 60), equal-weight (w = 1/2 everywhere), and the
-%   ORACLE, which routes by the TRUE target's popularity -- an upper bound, NOT deployable.
-% - Close with the learned-gate ablation in one or two sentences: a 2-parameter sigmoid gate fit
-%   on half the users, evaluated on the other half. No table.
-% - Source: FINDING_4.md 3 and 5; scripts/analysis_ensemble_full.py, analysis_learned_gate.py.
+
+Section~\ref{sec:crossover-method} establishes that neither score is uniformly
+better: which one to trust depends on how often the candidate has been seen in
+training. A recommender that commits to one of them gives up accuracy on the regime
+it did not choose. PopGate avoids the choice. Rather than selecting a model per
+dataset, it weights the two scores separately for each candidate, using that
+candidate's own popularity as the weight.
+
+Two conditions must hold before the scores can be combined. First, both must be
+computed over the same candidate set: fusing rankings drawn from independently
+sampled candidates would compare scores for items the other model never saw. We
+therefore draw a single candidate set per user and score it with both the
+collaborative recommender and the language model, retaining every candidate's score
+rather than only the final ordering. Second, the two scores are not on a common
+scale, one being a dot product and the other a mean log-probability. Within each
+user we standardise each model's scores across its candidates to zero mean and unit
+variance, giving comparable quantities $z_{\mathrm{CF}}$ and $z_{\mathrm{LLM}}$.
+
+The gate itself is a single ratio. Writing $\mathrm{pop}(c)$ for candidate $c$'s
+training popularity and $\pi$ for the mean popularity of the items appearing in the
+training split,
+\begin{equation}
+w(c) = \frac{\mathrm{pop}(c)}{\mathrm{pop}(c) + \pi}, \qquad
+s(c) = w(c)\, z_{\mathrm{CF}}(c) + \bigl(1 - w(c)\bigr) z_{\mathrm{LLM}}(c),
+\label{eq:popgate}
+\end{equation}
+and candidates are ranked by $s$. A candidate far more popular than typical receives
+$w \to 1$ and is judged almost entirely by the collaborative score; one far rarer
+receives $w \to 0$ and is judged by the language model; a candidate of typical
+popularity is scored by an even blend. The handover is smooth, and its midpoint sits
+at the dataset's own scale rather than at a constant chosen by hand.
+
+Both $\mathrm{pop}(c)$ and $\pi$ are computed on the training split alone. In
+particular $\pi$ is not the descriptive density of
+Section~\ref{sec:crossover-method}, which averages over all interactions: on Luxury
+Beauty the two are $8.9$ and $10.4$. The distinction is what keeps PopGate
+deployable, since every quantity the gate needs is known before the ground-truth item
+is revealed, and the weights can therefore be computed for any candidate set at
+ranking time.
+
+We compare PopGate against three alternatives that share its inputs.
+\textbf{Reciprocal rank fusion} combines the two rankings by summing
+$1/(60 + \text{rank})$, using only positions and discarding score magnitudes.
+\textbf{Equal weighting} sets $w = 1/2$ for every candidate, fusing the two
+standardised scores without reference to popularity. The third is an \textbf{oracle}
+that routes the entire ranking to one model according to the true target item's
+popularity; it is not deployable, since it presumes the answer, and serves only as an
+upper bound on what routing by popularity can achieve.
+
+Finally, to test whether the fixed form of the gate is what matters, we replace it
+with a two-parameter learned alternative,
+$w(c) = \sigma\bigl(a \log(\mathrm{pop}(c) + 1) + b\bigr)$, fitted on half the users
+and evaluated on the other half.
 
 
 \section{Experimental Setup}
