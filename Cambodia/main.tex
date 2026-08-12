@@ -180,10 +180,8 @@ title likelihood respectively. The goal here is to establish how the reliability
 these two scores varies with item popularity, and at which popularity one overtakes
 the other. Both facts are prerequisites for PopGate (Section~\ref{sec:popgate}): the
 first justifies gating on popularity at all, the second fixes where the gate should
-hand over. We define the popularity
-of an item as the number of times it occurs in the training split, a property of the
-item rather than of the user, counted without validation or test interactions so that
-it remains available for any candidate at inference. Grouping test cases by the
+hand over. We define the popularity of an item as the number of times it occurs in the
+training split, a property of the item rather than of the user. Grouping test cases by the
 popularity of their ground-truth item and comparing Hit@1 of the two scores within
 each group yields an accuracy difference that varies with popularity; we call the
 popularity at which this difference changes sign the \emph{crossover point}. To ask
