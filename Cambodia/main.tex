@@ -174,15 +174,17 @@ the tokens of that title given the prompt, and candidates are ranked by this sco
 \subsection{Measuring the Crossover}
 \label{sec:crossover-method}
 
-The goal of this analysis is to establish how the reliability of the two signals varies
-with item popularity, and where the balance between them tips. Both are prerequisites
-for PopGate (Section~\ref{sec:popgate}): weighting the signals by popularity is only
-justified if their relative accuracy depends on it, and the weighting needs a
-principled point at which one signal gives way to the other. We define the popularity
+The collaborative recommender (Section~\ref{sec:cf}) and the language model
+(Section~\ref{sec:stage2}) each assign every candidate a score, by dot product and by
+title likelihood respectively. The goal here is to establish how the reliability of
+these two scores varies with item popularity, and where the balance between them tips.
+Both are prerequisites for PopGate (Section~\ref{sec:popgate}): weighting the two
+scores by popularity is only justified if their relative accuracy depends on it, and
+the weighting needs a principled point at which one gives way to the other. We define the popularity
 of an item as the number of times it occurs in the training split, a property of the
 item rather than of the user, counted without validation or test interactions so that
 it remains available for any candidate at inference. Grouping test cases by the
-popularity of their ground-truth item and comparing Hit@1 of the two signals within
+popularity of their ground-truth item and comparing Hit@1 of the two scores within
 each group yields an accuracy difference that varies with popularity; we call the
 popularity at which this difference changes sign the \emph{crossover point}. To ask
 whether that point is predictable from the data alone, we pair it with two descriptive
