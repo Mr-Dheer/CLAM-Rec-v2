@@ -254,14 +254,49 @@ and evaluated on the other half.
 
 \subsection{Datasets}
 \label{sec:datasets}
-% - 4 Amazon Review 2018 categories: Luxury Beauty, AMAZON_FASHION, Toys & Games (sub),
-%   Prime Pantry. Users / items / cold fraction / density table.
-% - Toys is a 15% random-user subsample, seed fixed before any result, SASRec retrained.
-% - Table should carry BOTH density columns so 1.6's distinction is visible:
-%   descriptive mean interactions/item 10.4 / 2.5 / 10.8 / 19.2 and the training-split
-%   pivot pi 8.9 / 2.4 / 8.3 / 16.2 (Luxury / Fashion / Toys / Prime Pantry).
-% - Source: DATASETS.md. OPEN ITEM -- DATASETS.md says 5-core but preprocess.py uses 4-core for
-%   Beauty/Toys; resolve before writing.
+
+We evaluate on four categories of the Amazon Review 2018 corpus~\cite{amazonreviews}:
+Luxury Beauty, AMAZON\_FASHION, Toys \& Games, and Prime Pantry. Each provides user
+purchase histories with timestamps together with item metadata. We use item titles and
+descriptions to build the textual item representations of Section~\ref{sec:stage1},
+and titles alone in the prompts of Section~\ref{sec:stage2}.
+
+The four categories were chosen to span a wide range of interaction density, the
+property that Section~\ref{sec:crossover-method} relates the crossover point to. Their
+mean number of interactions per item ranges from $2.5$ to $19.2$, close to an
+eightfold spread, and the proportion of rare target items varies correspondingly from
+a quarter to three quarters. A collection concentrated at one end of that range could
+not separate a crossover point that tracks density from one that is simply constant.
+
+Following common practice in sequential recommendation~\cite{sasrec}, we discard
+sparse users and items before training, applying a four-review threshold to Luxury
+Beauty and Toys \& Games and a five-review threshold to the other two. The filter is
+applied in a single pass over the raw reviews rather than iterated, so a small number
+of users and items with fewer surviving interactions remain. Each user's interactions
+are then sorted chronologically to form the sequential task. Toys \& Games is far
+larger than the other three, so we draw a random $15\%$ sample of its users under a
+seed fixed before any result was inspected, re-apply an iterative five-core filter,
+and retrain SASRec on the sample. Table~\ref{tab:datasets} reports the resulting
+statistics.
+
+\begin{table}[t]
+\centering
+\caption{Dataset statistics after preprocessing. Density is the mean number of
+interactions per item over all interactions; $\pi$ is the corresponding mean over the
+training split alone, used by the gate in Equation~\ref{eq:popgate}. Cold is the
+percentage of test cases whose target item has at most five training interactions.}
+\label{tab:datasets}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Dataset & Users & Items & Inter. & Density & $\pi$ & Hist. & Cold \\
+\midrule
+AMAZON\_FASHION     & 3,679  & 7,310 & 17,994  & 2.5  & 2.4  & 4.9 & 75\% \\
+Luxury Beauty       & 9,930  & 6,141 & 63,953  & 10.4 & 8.9  & 6.4 & 38\% \\
+Toys \& Games (sub) & 9,513  & 7,253 & 78,633  & 10.8 & 8.3  & 8.3 & 47\% \\
+Prime Pantry        & 15,611 & 7,841 & 150,402 & 19.2 & 16.2 & 9.6 & 25\% \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 \subsection{Evaluation Protocol}
