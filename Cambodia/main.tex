@@ -198,10 +198,13 @@ history length, both computed over all interactions of the data.
 \subsection{PopGate: Popularity-Gated Fusion}
 \label{sec:popgate}
 
-Section~\ref{sec:crossover-method} establishes that neither score is uniformly
-better: which one to trust depends on how often the candidate has been seen in
-training. A recommender that commits to one of them gives up accuracy wherever the
-other is stronger. PopGate avoids the choice. Rather than selecting a model per
+The collaborative score becomes more reliable as an item is observed more often in
+training (Section~\ref{sec:cf}), whereas the language model reads a title that is
+equally available at any popularity (Section~\ref{sec:stage2}). One score must
+therefore overtake the other as popularity grows, and
+Section~\ref{sec:crossover-method} measures where. A recommender that commits to a
+single score gives up accuracy wherever the other is stronger. PopGate avoids the
+choice. Rather than selecting a model per
 dataset, it weights the two scores separately for each candidate, using that
 candidate's own popularity as the weight.
 
