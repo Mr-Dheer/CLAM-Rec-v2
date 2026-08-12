@@ -230,13 +230,9 @@ and candidates are ranked by $s$. A candidate far more popular than typical rece
 $w \to 1$ and is judged almost entirely by the collaborative score; one far rarer
 receives $w \to 0$ and is judged by the language model; one whose popularity matches
 $\pi$ is judged by the two equally. The handover is smooth, and its midpoint sits
-at the dataset's own scale rather than at a constant chosen by hand.
-
-Both $\mathrm{pop}(c)$ and $\pi$ are computed on the training split alone. In
-particular $\pi$ is not the descriptive density of
-Section~\ref{sec:crossover-method}, which averages over all interactions. Because
-both are training statistics, the gate can be evaluated for any candidate without
-knowing which is the target.
+at the dataset's own scale rather than at a constant chosen by hand. Because
+$\mathrm{pop}(c)$ and $\pi$ are both training statistics, the gate can be evaluated
+for any candidate without knowing which is the target.
 
 We compare PopGate against three alternatives that share its inputs.
 \textbf{Reciprocal rank fusion} combines the two rankings by summing
