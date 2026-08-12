@@ -231,11 +231,9 @@ at the dataset's own scale rather than at a constant chosen by hand.
 
 Both $\mathrm{pop}(c)$ and $\pi$ are computed on the training split alone. In
 particular $\pi$ is not the descriptive density of
-Section~\ref{sec:crossover-method}, which averages over all interactions: on Luxury
-Beauty the two are $8.9$ and $10.4$. The distinction is what keeps PopGate
-deployable, since every quantity the gate needs is known before the ground-truth item
-is revealed, and the weights can therefore be computed for any candidate set at
-ranking time.
+Section~\ref{sec:crossover-method}, which averages over all interactions. Because
+both are training statistics, the gate can be evaluated for any candidate without
+knowing which is the target.
 
 We compare PopGate against three alternatives that share its inputs.
 \textbf{Reciprocal rank fusion} combines the two rankings by summing
@@ -260,6 +258,9 @@ and evaluated on the other half.
 % - 4 Amazon Review 2018 categories: Luxury Beauty, AMAZON_FASHION, Toys & Games (sub),
 %   Prime Pantry. Users / items / cold fraction / density table.
 % - Toys is a 15% random-user subsample, seed fixed before any result, SASRec retrained.
+% - Table should carry BOTH density columns so 1.6's distinction is visible:
+%   descriptive mean interactions/item 10.4 / 2.5 / 10.8 / 19.2 and the training-split
+%   pivot pi 8.9 / 2.4 / 8.3 / 16.2 (Luxury / Fashion / Toys / Prime Pantry).
 % - Source: DATASETS.md. OPEN ITEM -- DATASETS.md says 5-core but preprocess.py uses 4-core for
 %   Beauty/Toys; resolve before writing.
 
