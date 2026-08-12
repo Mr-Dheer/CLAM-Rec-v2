@@ -78,8 +78,8 @@ To rank a candidate item, SASRec takes the dot product between this sequence
 representation and the candidate's item embedding, and orders candidates by the
 resulting score. SASRec is trained on each dataset's interaction data and kept
 frozen thereafter. It supplies the item embeddings that Stage~1 aligns with text,
-the sequence representation that Stage~2 passes to the language model, and the
-collaborative score that PopGate combines with the language model's.
+the sequence representation used by both stages, and the collaborative score that
+PopGate combines with the language model's.
 
 Because item embeddings are learned solely from co-occurrence, the quality of this
 collaborative signal varies across items. An item's embedding is updated only when
@@ -116,21 +116,20 @@ corresponding decoder reconstructs the original input. The two inputs are thus
 aligned through a common bottleneck rather than concatenated into a single
 feature vector.
 
-We optimize the alignment module with three complementary objectives. A
+We optimise the alignment module with three complementary objectives. A
 matching loss brings the collaborative and textual encodings closer in the
 shared space. Reconstruction losses preserve the information carried by each
-input and discourage degenerate aligned representations. Finally, a binary
+input. Finally, a binary
 recommendation loss scores reconstructed positive and negative item embeddings
 against the frozen SASRec sequence representation. This objective ensures that
 the aligned representation retains the ranking structure learned from user--item
-interactions, rather than optimizing semantic agreement alone.
+interactions, rather than optimising semantic agreement alone.
 
-Following the alignment strategy of A-LLMRec~\cite{kim2024large}, Stage~1 is
-trained to bring sequential and textual item representations into a common
-latent space. Once training is complete, only the collaborative-side encoder is
-retained. It maps each SASRec item embedding to the 128-dimensional aligned item
-representation used in Stage~2; the textual encoder and both reconstruction
-decoders are not required at inference.
+Stage~1 follows the alignment strategy of A-LLMRec~\cite{kim2024large}. Once
+training is complete, only the collaborative-side encoder is retained. It maps
+each SASRec item embedding to the 128-dimensional aligned item representation
+used in Stage~2; the textual encoder and both reconstruction decoders are not
+required at inference.
 
 
 \subsection{Stage 2: LLM Integration}
