@@ -200,8 +200,8 @@ history length, both computed over all interactions of the data.
 
 Section~\ref{sec:crossover-method} establishes that neither score is uniformly
 better: which one to trust depends on how often the candidate has been seen in
-training. A recommender that commits to one of them gives up accuracy on the regime
-it did not choose. PopGate avoids the choice. Rather than selecting a model per
+training. A recommender that commits to one of them gives up accuracy wherever the
+other is stronger. PopGate avoids the choice. Rather than selecting a model per
 dataset, it weights the two scores separately for each candidate, using that
 candidate's own popularity as the weight.
 
