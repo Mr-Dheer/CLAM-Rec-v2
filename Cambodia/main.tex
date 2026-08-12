@@ -187,9 +187,7 @@ each group yields an accuracy difference that varies with popularity; we call th
 popularity at which this difference changes sign the \emph{crossover point}. To ask
 whether that point is predictable from the data alone, we pair it with two descriptive
 statistics of each dataset, the mean number of interactions per item and the mean user
-history length, both computed over all interactions of the preprocessed data. These
-characterise the dataset as a whole and are used only for this analysis; they are
-deliberately distinct from the training-split statistic that PopGate uses at inference.
+history length, both computed over all interactions of the data.
 
 % MOVED TO RESULTS (must appear beside the crossover figure, do not lose):
 % - bin edges [(0,0),(1,1),(2,2),(3,4),(5,7),(8,12),(13,20),(21,35),(36,60),(61,inf)]
@@ -213,6 +211,11 @@ deliberately distinct from the training-split statistic that PopGate uses at inf
 % - EQUATION 1 -- the gate:  w(c) = pop(c) / (pop(c) + pi_train)
 %   pi_train = mean nonzero item popularity in the TRAINING split. Leakage-free and known at
 %   inference, which is what makes PopGate deployable.
+% - MUST state here (moved out of 1.5): pi_train is computed on the training split only
+%   and is NOT the descriptive all-interaction density of 1.5 -- e.g. Luxury 8.9 vs 10.4.
+%   Conflating them implies the gate uses test information. FINDING_2.md 7, FINDING_4.md 3.
+% - ALSO moved from 1.5: popularity is a training statistic, so it is known for every
+%   candidate at ranking time -- this is what separates PopGate from the oracle.
 % - EQUATION 2 -- the fused score:  w(c) z_CF(c) + (1 - w(c)) z_LLM(c)
 % - Comparison methods: RRF (ranks only, k = 60), equal-weight (w = 1/2 everywhere), and the
 %   ORACLE, which routes by the TRUE target's popularity -- an upper bound, NOT deployable.
