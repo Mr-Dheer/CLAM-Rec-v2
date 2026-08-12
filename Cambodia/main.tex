@@ -228,8 +228,8 @@ s(c) = w(c)\, z_{\mathrm{CF}}(c) + \bigl(1 - w(c)\bigr) z_{\mathrm{LLM}}(c),
 \end{equation}
 and candidates are ranked by $s$. A candidate far more popular than typical receives
 $w \to 1$ and is judged almost entirely by the collaborative score; one far rarer
-receives $w \to 0$ and is judged by the language model; a candidate of typical
-popularity is scored by an even blend. The handover is smooth, and its midpoint sits
+receives $w \to 0$ and is judged by the language model; one whose popularity matches
+$\pi$ is judged by the two equally. The handover is smooth, and its midpoint sits
 at the dataset's own scale rather than at a constant chosen by hand.
 
 Both $\mathrm{pop}(c)$ and $\pi$ are computed on the training split alone. In
