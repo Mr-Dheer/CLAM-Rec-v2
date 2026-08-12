@@ -262,6 +262,47 @@ deliberately distinct from the training-split statistic that PopGate uses at inf
 % - Source: RESULTS.md "Fixed experimental setup"; scripts/train.py, scripts/train_sasrec.py.
 
 
+\section{Results}
+\label{sec:results}
+
+\subsection{CF and the LLM are Complementary Along Popularity}
+\label{sec:results-crossover}
+% FINDING 1. Two views of the same axis, both reported (decided 2026-08-12):
+% - cold/warm table: Hit@1/5/10 + NDCG@5/10, 4 datasets, cold vs warm slices.
+%   Numbers: RESULTS.md "RANKING RESULTS"; headline Hit@1 cold/warm per dataset
+%   in FINDING_1.md 3.
+% - per-bin difference curve -> Figure 1(a) (figures/crossover_sparsity.pdf).
+%   Shows the decline is systematic, not an artefact of one threshold.
+% - The measurement detail displaced from 1.5 MUST land here: bin edges/centres,
+%   the fewer-than-20-cases dropping rule, and the shared-candidate point.
+% - Mechanism sentence worth stating: at zero training interactions SASRec scores
+%   0.000 while the LLM still works (FINDING_1.md 4.1).
+
+
+\subsection{The Crossover Point Tracks Dataset Density}
+\label{sec:results-density}
+% FINDING 2.
+% - Table: crossover point vs mean interactions/item vs mean history length,
+%   4 datasets (FINDING_2.md 4).
+% - Figure 1(b): crossover vs density with the y=x line, r = 0.98 (0.99 vs
+%   history length).
+% - The interpolation rule displaced from 1.5 lands here.
+% - Honesty: n = 4, so suggestive not established; also disclose the All Beauty
+%   -> Prime Pantry dataset swap and why (FINDING_2.md 6).
+
+
+\subsection{PopGate}
+\label{sec:results-popgate}
+% FINDING 4.
+% - Main table per dataset: CF, LLM, RRF, z-fuse, PopGate, oracle x
+%   Hit@1/5/10, NDCG@5/10, + cold/warm Hit@1 (FINDING_4.md 6).
+% - Reads to make: PopGate wins Hit@1 and NDCG on all 4; naive fusion does not;
+%   cold/warm columns show it inherits the better signal per regime.
+% - Honest nuance: Prime Pantry is CF-dominant, so pure CF wins Hit@5/10 there;
+%   Toys cold is below the pure LLM. State both plainly.
+% - Learned-gate ablation: one or two sentences, no table (FINDING_4.md 8).
+
+
 
 
 
