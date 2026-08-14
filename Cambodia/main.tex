@@ -298,12 +298,20 @@ Prime Pantry        & 15,611 & 7,841 & 150,402 & 19.2 & 9.6 & 25\% \\
 
 \subsection{Evaluation Protocol}
 \label{sec:protocol}
-% - THE LEAVE-ONE-OUT SPLIT LIVES HERE: per user, last interaction = test, second-to-last =
-%   validation, rest = training.
-% - 1 ground-truth item + 19 sampled negatives = 20 candidates, fixed everywhere.
-% - Why 20 is locked is architectural, not preference: the prompt lists candidate titles and
-%   OPT's context is 2048 tokens, so larger pools overflow it.
-% - Source: EVAL_PROTOCOL.md; clam_rec/data/partition.py.
+
+Following standard practice in sequential recommendation~\cite{sasrec}, we adopt the
+leave-one-out evaluation strategy. For each user, the last item in the interaction
+sequence is used for testing, the second-to-last item for validation, and the
+remaining items for training. Users with fewer than three interactions cannot supply
+all three parts and are excluded from evaluation. At test time the model is given the
+training sequence extended with the validation item.
+
+During evaluation, the ground-truth item is ranked against $19$ randomly sampled
+negative items that the user has not interacted with, forming a candidate set of $20$
+items per user. This size is fixed by the architecture rather than chosen: Stage~2 lists every candidate title in
+the prompt, so prompt length grows with the candidate count, and OPT-6.7B accepts at
+most $2{,}048$ positions.Absolute values are therefore optimistic relative to
+full-catalogue ranking, and we compare only methods evaluated on identical sets.
 
 
 \subsection{Metrics and Popularity Slicing}
