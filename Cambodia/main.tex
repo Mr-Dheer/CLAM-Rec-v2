@@ -265,14 +265,14 @@ The four categories were chosen to span a wide range of interaction density, the
 property that Section~\ref{sec:crossover-method} relates the crossover point to. Their
 mean number of interactions per item ranges from $2.5$ to $19.2$, close to an
 eightfold spread, and the proportion of rare target items varies correspondingly from
-a quarter to three quarters
+a quarter to three quarters.
 
 Following common practice in sequential recommendation~\cite{sasrec}, we discard
 sparse users and items before training, applying a four-review threshold to Luxury
 Beauty and Toys \& Games and a five-review threshold to the other two. Each user's interactions
 are then sorted chronologically to form the sequential task. Toys \& Games is far
 larger than the other three, so we draw a random $15\%$ sample of its users under a
-seed fixed, re-apply an iterative five-core filter,
+fixed seed, re-apply an iterative five-core filter,
 and retrain SASRec on the sample. Table~\ref{tab:datasets} reports the resulting
 statistics.
 
@@ -310,19 +310,24 @@ During evaluation, the ground-truth item is ranked against $19$ randomly sampled
 negative items that the user has not interacted with, forming a candidate set of $20$
 items per user. This size is fixed by the architecture rather than chosen: Stage~2 lists every candidate title in
 the prompt, so prompt length grows with the candidate count, and OPT-6.7B accepts at
-most $2{,}048$ positions.Absolute values are therefore optimistic relative to
+most $2{,}048$ positions. Absolute values are therefore optimistic relative to
 full-catalogue ranking, and we compare only methods evaluated on identical sets.
 
+We report Hit@$k$ for $k \in \{1, 5, 10\}$ and NDCG@$k$ for $k \in \{5, 10\}$.
+Hit@$k$ is the proportion of test cases in which the ground-truth item appears among
+the top $k$ ranked candidates. NDCG@$k$ reduces to $1/\log_2(r+1)$ when the ground-truth item
+is ranked at position $r \le k$ and to zero otherwise, rewarding methods that place it
+higher rather than merely within the cut-off.
 
-\subsection{Metrics and Popularity Slicing}
-\label{sec:metrics}
-% - Hit@1/5/10 and NDCG@5/10. One relevant item, so NDCG reduces to 1/log2(rank+1); one inline
-%   sentence each, no displayed equations.
-% - cold = target training count <= 5, warm otherwise. Refers back to the popularity definition
-%   in the crossover subsection rather than restating it.
-% - The two scoring conventions, stated honestly: crossover analyses identify the target by
-%   normalised/fuzzy TITLE match (threshold 0.90), fusion analyses by item ID.
-%   Source: clam_rec/eval/metrics.py.
+Every metric is additionally reported on two slices of the test cases, split by the
+popularity of the target item as defined in Section~\ref{sec:crossover-method}. A test
+case is \emph{cold} if its target item occurs at most five times in the training split
+and \emph{warm} otherwise. An average over all test cases conceals the difference
+between the two scores, which is the effect this paper is concerned with. The
+threshold itself is not load-bearing: the finer popularity binning of
+Section~\ref{sec:crossover-method} shows the same effect across the whole popularity
+range without depending on any single cut-off.
+
 
 
 \subsection{Implementation Details}
