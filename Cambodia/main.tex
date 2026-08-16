@@ -332,14 +332,18 @@ range without depending on any single cut-off.
 \subsection{Baselines}
 \label{sec:baselines}
 
-We compare Pivot-Rec against four recommenders trained on interaction data alone:
-\textbf{NCF}~\cite{he2017neural}, which learns the user--item interaction function
-from implicit feedback and is the only non-sequential model in the set;
-\textbf{GRU4Rec}~\cite{hidasi2015session}, recurrent; \textbf{NextItNet}
-\cite{yuan2019simple}, dilated-convolutional; and \textbf{SASRec}~\cite{sasrec},
-self-attentive. SASRec is also Pivot-Rec's collaborative component
-(Section~\ref{sec:cf}), so that comparison isolates the contribution of the
-language model and the gate rather than of a different backbone.
+We compare Pivot-Rec against four recommenders trained on interaction data alone.
+\textbf{NCF}~\cite{he2017neural} learns the user--item interaction function from
+implicit feedback using a neural network, and is the only non-sequential model in
+the set. \textbf{GRU4Rec}~\cite{hidasi2015session} is a recurrent sequential
+recommender that models user interaction sequences with gated recurrent units.
+\textbf{NextItNet}~\cite{yuan2019simple} is a convolutional sequential recommender
+that stacks dilated convolutional layers to capture both short- and long-range
+dependencies between items. \textbf{SASRec}~\cite{sasrec} attends adaptively over
+the user's previous items when predicting the next one; it is also Pivot-Rec's
+collaborative component (Section~\ref{sec:cf}), so that comparison isolates the
+contribution of the language model and the gate rather than of a different
+backbone.
 
 Two language-model recommenders follow. \textbf{A-LLMRec}~\cite{kim2024large}
 projects collaborative representations into the token space of a frozen language
