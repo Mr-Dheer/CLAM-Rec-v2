@@ -329,6 +329,33 @@ range without depending on any single cut-off.
 
 
 
+\subsection{Baselines}
+\label{sec:baselines}
+
+We compare Pivot-Rec against four recommenders trained on interaction data alone:
+\textbf{NCF}~\cite{he2017neural}, which learns the user--item interaction function
+from implicit feedback and is the only non-sequential model in the set;
+\textbf{GRU4Rec}~\cite{hidasi2015session}, recurrent; \textbf{NextItNet}
+\cite{yuan2019simple}, dilated-convolutional; and \textbf{SASRec}~\cite{sasrec},
+self-attentive. SASRec is also Pivot-Rec's collaborative component
+(Section~\ref{sec:cf}), so that comparison isolates the contribution of the
+language model and the gate rather than of a different backbone.
+
+Two language-model recommenders follow. \textbf{A-LLMRec}~\cite{kim2024large}
+projects collaborative representations into the token space of a frozen language
+model and ranks candidates by that model's score alone, with no reference to how
+often a candidate was observed in training. \textbf{LLM-only} prompts
+OPT-6.7B~\cite{opt} zero-shot using the Stage-2 template of
+Section~\ref{sec:stage2} with every learned signal removed --- no user
+representation, no Stage-1 item embeddings, no soft tokens --- separating what the
+language model contributes by reading titles from what the aligned collaborative
+representations contribute. Three further comparisons, reciprocal rank fusion,
+equal weighting and the popularity oracle, are variants of the gate rather than
+independent recommenders and are defined alongside it in
+Section~\ref{sec:popgate}. All baselines rank the same candidate sets under the
+protocol of Section~\ref{sec:protocol}.
+
+
 \subsection{Implementation Details}
 \label{sec:impl}
 
