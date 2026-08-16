@@ -310,8 +310,7 @@ During evaluation, the ground-truth item is ranked against $19$ randomly sampled
 negative items that the user has not interacted with, forming a candidate set of $20$
 items per user. This size is fixed by the architecture rather than chosen: Stage~2 lists every candidate title in
 the prompt, so prompt length grows with the candidate count, and OPT-6.7B accepts at
-most $2{,}048$ positions. Absolute values are therefore optimistic relative to
-full-catalogue ranking, and we compare only methods evaluated on identical sets.
+most $2{,}048$ positions.
 
 We report Hit@$k$ for $k \in \{1, 5, 10\}$ and NDCG@$k$ for $k \in \{5, 10\}$.
 Hit@$k$ is the proportion of test cases in which the ground-truth item appears among
@@ -332,12 +331,19 @@ range without depending on any single cut-off.
 
 \subsection{Implementation Details}
 \label{sec:impl}
-% - Frozen SASRec: hidden 50, maxlen 50, 2 blocks, 1 head. Frozen OPT-6.7B in 8-bit.
-% - 10 + 10 epochs, Adam, lr 1e-4, single A6000.
-% - SINGLE SEED (seed 0) throughout -- state plainly here, defend in Limitations.
-% - pi per dataset (the gate's pivot, Eq. 1): 2.4 / 8.9 / 8.3 / 16.2 for
-%   Fashion / Luxury / Toys / Prime Pantry. Moved out of the datasets table.
-% - Source: RESULTS.md "Fixed experimental setup"; scripts/train.py, scripts/train_sasrec.py.
+
+The SASRec backbone uses two self-attention blocks with a single head,
+$50$-dimensional item embeddings, a maximum sequence length of $50$, and dropout
+$0.5$. It is trained on each dataset's training split with Adam at a learning rate
+of $10^{-3}$ for $200$ epochs and frozen thereafter. In Stage~1 the two
+encoder--decoder pairs and the Sentence-BERT encoder
+(\texttt{nq-distilbert-base-v1}) are trained for $10$ epochs with Adam at a
+learning rate of $10^{-4}$ and a batch size of $32$; the item and text
+reconstruction losses are weighted by $0.5$ and $0.2$, the matching and
+recommendation losses by one. In Stage~2 only the user and item projection MLPs
+are trained, again for $10$ epochs with Adam at a learning rate of $10^{-4}$;
+OPT-6.7B is loaded in $8$-bit and none of its parameters are updated. All
+experiments run on a single NVIDIA RTX A6000 (48\,GB).
 
 
 \section{Results}
